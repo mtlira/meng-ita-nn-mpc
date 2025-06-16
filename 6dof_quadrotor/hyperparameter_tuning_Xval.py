@@ -1,5 +1,5 @@
 import numpy as np
-from neural_network import NeuralNetwork, ControlAllocationDataset, ControlAllocationDataset_Binary, EarlyStopper
+from neural_network import NeuralNetwork, ControlAllocationDataset_Binary, EarlyStopper, ControlAllocationDataset_Binary_Short
 from sklearn.model_selection import KFold
 import matplotlib.pyplot as plt
 import torch
@@ -14,17 +14,19 @@ import os
 import warnings
 warnings.filterwarnings("ignore")
 
+from parameters.octorotor_parameters import num_rotors
+
 # Hyperparameters
-num_epochs = 70
+num_epochs = 35
 batch_size = 128
 #learning_rate = 0.001
-num_outputs = 4
+num_outputs = num_rotors
 num_neurons_hiddenlayers = 128
 batches_per_epoch = 300
 k_folds = 5
 
-#device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
-device = torch.device('cpu')
+device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
+#device = torch.device('cpu')
 print(f"Using {device} device")
 
 # Dataset path
@@ -38,6 +40,9 @@ def load_dataset(datasets_folder):
     #num_inputs = global_dataset.num_inputs
 
     train_dataset = np.load(datasets_folder + 'training_split_normalized.npy')
+    num_inputs = len(train_dataset[0]) - num_outputs
+    print('shape dataset',np.shape(train_dataset))
+    print('number of inputs',num_inputs)
     return train_dataset, num_inputs
 
 def define_model(trial, num_inputs):
@@ -67,9 +72,11 @@ def objective(trial):
     kf = KFold(n_splits=k_folds, shuffle=True, random_state=50)
     val_losses = []
 
+    earlystopper = EarlyStopper(4, 12, 0.05)
+
     for train_idx, val_idx in kf.split(train_dataset):
-        train_subset = Subset(train_dataset, train_idx)
-        val_subset = Subset(train_dataset, val_idx)
+        train_subset = Subset(train_dataset_class, train_idx)
+        val_subset = Subset(train_dataset_class, val_idx)
 
         train_dataloader = DataLoader(train_subset, batch_size=batch_size, shuffle=True)
         validation_dataloader = DataLoader(val_subset, batch_size=batch_size, shuffle=False)
@@ -90,8 +97,8 @@ def objective(trial):
             model.train()
             running_loss = 0.0
             for i_batch, batch_sample in enumerate(train_dataloader):
-                #if i_batch + 1 >= batches_per_epoch:
-                #    break
+                if i_batch + 1 >= batches_per_epoch:
+                    break
                 optimizer.zero_grad()
                 input = batch_sample['input'].to(device, non_blocking = True)
                 output = batch_sample['output'].to(device, non_blocking = True)
@@ -135,7 +142,7 @@ def objective(trial):
 
 def tune_hyperparameters():
     os.makedirs("optuna_studies", exist_ok=True)
-    study = optuna.create_study(direction='minimize', study_name='nn_control_alloc', storage="sqlite:///optuna_studies/nn_control_alloc_v5.db", load_if_exists=True)
+    study = optuna.create_study(direction='minimize', study_name='nn_control_alloc', storage="sqlite:///optuna_studies/nn_control_alloc_v6_smooth.db", load_if_exists=True)
     study.optimize(objective, n_trials = 120)
 
     pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
@@ -159,6 +166,6 @@ def tune_hyperparameters():
 
 if __name__ == '__main__':
     dataset_path = '../Datasets/Training datasets - v5/'
-    earlystopper = EarlyStopper(4, 15, 0.05)
     train_dataset, num_inputs = load_dataset(dataset_path)
+    train_dataset_class = ControlAllocationDataset_Binary_Short(train_dataset, num_outputs)
     study = tune_hyperparameters()

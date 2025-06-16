@@ -379,12 +379,12 @@ class DataAnalyser(object):
                     self.dataset = df if self.dataset is None else pd.concat([self.dataset, df])
         self.dataset.to_csv(mother_folder_path, sep='csv', index=False)
                 
-    def plot_rmse_histogram(self, dataset_path):
+    def plot_rmse_histogram(self, dataset_path, num_bins=30):
 
         df = pd.read_csv(dataset_path + 'dataset_metadata.csv', sep=',')
         min_value = np.min([np.min(df['mpc_RMSe']), np.min(df['nn_RMSe'])])
         max_value = np.max([np.max(df['mpc_RMSe']), np.max(df['nn_RMSe'])])
-        bins = np.linspace(min_value, max_value, 30)
+        bins = np.linspace(min_value, max_value, num_bins)
 
         plt.figure(figsize=(8,5))
         sns.histplot(df['mpc_RMSe'], bins=bins, color='royalblue', label='MPC', kde=True, stat='density', alpha=0.6)
@@ -399,7 +399,7 @@ class DataAnalyser(object):
         plt.tight_layout()
         plt.show()
 
-    def plot_histogram(self, df, column_1, column_2, x_label, title, legend, normalization_column = None, colors=['royalblue','darkorange'], save_name = None, show_mean = True, percentile_1=None, percentile_2=None, gain = 1):
+    def plot_histogram(self, df, column_1, column_2, x_label, title, legend, normalization_column = None, colors=['royalblue','darkorange'], save_name = None, show_mean = True, percentile_1=None, percentile_2=None, gain = 1, num_bins=30):
 
         data_1 = df[column_1]
         data_2 = df[column_2]
@@ -428,7 +428,7 @@ class DataAnalyser(object):
 
         min_value = np.min([np.min(data_1), np.min(data_2)])
         max_value = np.max([np.max(data_1), np.max(data_2)])
-        bins = np.linspace(min_value, max_value, 35)
+        bins = np.linspace(min_value, max_value, num_bins)
 
 
         plt.figure(figsize=(8,5))

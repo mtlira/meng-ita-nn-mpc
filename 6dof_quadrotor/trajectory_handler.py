@@ -47,7 +47,7 @@ class TrajectoryHandler(object):
         r = signal_r*r
         signal_w = np.random.choice([1,-1])
         w = signal_w*w
-        t = np.arange(0, T_simulation, T_sample)
+        t = np.arange(0, 2*T_simulation, T_sample)
         r_circle_xy = np.array([r*np.sin(w*t),
                        -r + r*np.cos(w*t),
                        np.zeros(len(t)),
@@ -282,7 +282,7 @@ class TrajectoryHandler(object):
 
 
     def generate_line_trajectories(self, num_lines):
-        coefficients = 6*np.random.rand(num_lines, 3) - 3 # Aggressive: [-5,5]
+        coefficients = 7*np.random.rand(num_lines, 3) - 3.5 # Aggressive: [-5,5]
         clamp = 10*np.random.rand(num_lines, 1) + 20
         T_simulation = 30*np.ones((num_lines, 1))
 
@@ -308,8 +308,8 @@ class TrajectoryHandler(object):
         return args
     
     def generate_circle_xy_performance_analysis(self):
-        period_vector = np.arange(0.5, 20, 0.25)
-        r_vector = 5*np.ones(len(period_vector))
+        period_vector = np.arange(0.25, 20, 0.25)
+        r_vector = 3*np.ones(len(period_vector))
         T_simulation_vector = np.array([max(10, period) for period in period_vector])
 
         args = np.concatenate(([2*np.pi/period_vector], [r_vector], [T_simulation_vector]), axis = 0).transpose()

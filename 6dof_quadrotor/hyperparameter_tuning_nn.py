@@ -14,15 +14,15 @@ import warnings
 warnings.filterwarnings("ignore")
 
 # Hyperparameters
-num_epochs = 70
+num_epochs = 30
 batch_size = 128
 #learning_rate = 0.001
-num_outputs = 4
+num_outputs = 8
 num_neurons_hiddenlayers = 128
-batches_per_epoch = 300
+batches_per_epoch = 250
 
-#device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
-device = torch.device('cpu')
+device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
+#device = torch.device('cpu')
 print(f"Using {device} device")
 
 # Dataset path
@@ -122,7 +122,7 @@ def objective(trial):
 
 def tune_hyperparameters():
     os.makedirs("optuna_studies", exist_ok=True)
-    study = optuna.create_study(direction='minimize', study_name='nn_control_alloc', storage="sqlite:///optuna_studies/nn_control_alloc_v5.db", load_if_exists=True)
+    study = optuna.create_study(direction='minimize', study_name='nn_control_alloc', storage="sqlite:///optuna_studies/nn_control_alloc_teste8.db", load_if_exists=True)
     study.optimize(objective, n_trials = 500)
 
     pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
@@ -145,6 +145,6 @@ def tune_hyperparameters():
     return study
 
 if __name__ == '__main__':
-    dataset_path = '../Datasets/Training datasets - v5/'
+    dataset_path = '../Datasets/Training datasets - v4/'
     train_dataloader, validation_dataloader, num_inputs = load_dataset(dataset_path)
     study = tune_hyperparameters()

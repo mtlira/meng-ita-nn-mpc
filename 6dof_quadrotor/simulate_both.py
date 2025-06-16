@@ -143,10 +143,10 @@ def simulate_batch(trajectory_type, args_vector, restrictions_vector, disturb_in
     dataset_id = 1
 
 if __name__ == '__main__':
-    nn_weights_folder = 'training_results/2-performance-analysis/'
+    nn_weights_folder = 'training_results/test_v6_smooth/'
     dataset_mother_folder = nn_weights_folder
     weights_file_name = 'model_weights.pth'
-    optuna_version = 'v4'
+    optuna_version = 'v6_database_v5_smooth_kfold'
     disturb_input = False
     if Path(dataset_mother_folder + 'dataset_metadata.csv').is_file():
         dataset_dataframe = pd.read_csv(dataset_mother_folder + 'dataset_metadata.csv', sep=',')
@@ -162,13 +162,14 @@ if __name__ == '__main__':
     run_point = False
     run_lissajous_xy = False
     run_line = False
-    run_circle_xy_performance = True
+    run_circle_xy_performance = False
     fault_2rotors = False
-    one_example = False
+    one_example = True
 
     restriction_vector = [rst.restriction('normal')]
+    restriction_mixed = [rst.restriction('normal'), rst.restriction('total_failure', [0])]
     restriction_fault = [rst.restriction('total_failure', [1])]
-    restriction_fault_2 = [rst.restriction('total_failure', [0,3])]
+    restriction_fault_2 = [rst.restriction('total_failure', [0,1])]
 
     if run_circle_xy:
         args = tr.generate_circle_xy_trajectories()
@@ -199,25 +200,23 @@ if __name__ == '__main__':
     # Simulate one example only
     if one_example:
         #restriction_fault = [rst.restriction('total_failure', [0])]
-        #args = [[0, 0, -20, 20]]
-        #simulate_batch('point', args, restriction_vector, disturb_input = False)
+        args = [[0, 0, -15, 20]]
+        simulate_batch('point', args, restriction_fault, disturb_input = False)
 
         #args = [[2*np.pi/10, 3, 30]]
-        #simulate_batch('lissajous_xy', args, restriction_fault, disturb_input = False)
+        #simulate_batch('lissajous_xy', args, restriction_mixed, disturb_input = False)
 
         #args_circle = [[2*np.pi/10, 5, 30]]
-        #simulate_batch('circle_xy', args_circle, restriction_fault, disturb_input = False)
+        #simulate_batch('circle_xy', args_circle, restriction_mixed, disturb_input = False)
 
         # x, y, z, 
         #args_point = [[0, 0, 0, 20]]
-        #simulate_batch('point', args_point, restriction_fault_2, disturb_input = False)
+        #simulate_batch('point_failure', args_point, restriction_fault_2, disturb_input = False)
 
         #args = [[2*np.pi/25, 2.5, 50]]
         #simulate_batch('lissajous_3d', args, restriction_vector, disturb_input = False)
 
-        args = [[2*np.pi/10 , 0, 0.25, 0.5, 30]]
-        simulate_batch('helicoidal', args, restriction_fault, disturb_input = False)
-
-
+        #args = [[2*np.pi/10 , 0, 0.25, 0.5, 30]]
+        #simulate_batch('helicoidal', args, restriction_fault, disturb_input = False)
 
     dataset_dataframe.to_csv(dataset_mother_folder + 'dataset_metadata.csv', sep=',', index=False)

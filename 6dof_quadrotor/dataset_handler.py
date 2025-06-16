@@ -32,7 +32,7 @@ def group_and_split_datasets_npy(folder_path):
     print('\t There are no corrupted data')
 
     # Spliting into train and test (obs: validation happens inside the training dataset)
-    training_dataset, test_dataset = train_test_split(global_dataset, test_size=0.1, random_state=50)
+    training_dataset, test_dataset = train_test_split(global_dataset, test_size=0.1, random_state=50, shuffle=True)
 
     # Normalization of the training dataset ONLY
     mean = np.mean(training_dataset, axis = 0)
@@ -40,8 +40,8 @@ def group_and_split_datasets_npy(folder_path):
 
     training_dataset = (training_dataset - mean) / std
 
-    np.save('training_split_normalized.npy', training_dataset)
-    np.save('test_split_not_normalized.npy', test_dataset)
+    np.save(folder_path + 'training_split_normalized.npy', training_dataset)
+    np.save(folder_path + 'test_split_not_normalized.npy', test_dataset)
 
     data = np.concatenate(([mean], [std]), axis = 0)
     np.savetxt(folder_path + 'normalization_data.csv', data, delimiter=",")
@@ -131,16 +131,33 @@ def csv2npy(mother_folder_path):
                 data_bin = dataframe.to_numpy(dtype=np.float32)   # Set dtype when converting to NumPy
                 np.save(os.path.join(subdir, 'dataset.npy'), data_bin)
 
-                                
-#group_datasets('teste/')
-csv2npy('../Datasets/')
-#split_dataset('dataset_canon/canon_N_90_M_10_hover_only/global_dataset/', 'global_dataset.csv', 0.8)
+def load_training_dataset(datasets_folder, num_outputs):
+    #global_dataset = ControlAllocationDataset_Binary(datasets_folder, False, num_outputs)
+    #train_size = int(0.9 * len(global_dataset))
+    #test_size = len(global_dataset) - train_size
+    #val_size = int(0.2 * len(global_dataset))
+    
+    #train_dataset, test_dataset = torch.utils.data.random_split(global_dataset, [train_size, test_size])
+    #num_inputs = global_dataset.num_inputs
 
-# Teste de validação
-#check = pd.read_csv('dataset_canon/canon_N_50_M_20/global_dataset.csv', header = None)
-#print('check global dataset shape',np.shape(check))
-#print('column 50 min max mean', np.min(check[100]), np.max(check[100]), np.mean(check[100]))
+    train_dataset = np.load(datasets_folder + 'training_split_normalized.npy')
+    num_inputs = len(train_dataset[0]) - num_outputs
+    print('shape dataset',np.shape(train_dataset))
+    print('number of inputs',num_inputs)
+    return train_dataset, num_inputs
 
-#check_normalization = pd.read_csv('dataset_canon/canon_N_50_M_20/global/normalization_data.csv', header = None)
-#print('check_normalization shape', np.shape(check_normalization))
-#print('check_normalization[98].std\n', check_normalization[98][1])
+if __name__ == '__main__':
+    group_and_split_datasets_npy('../Datasets/Training datasets - v5/')
+
+    # group_datasets('teste/')
+    # csv2npy('../Datasets/')
+    # split_dataset('dataset_canon/canon_N_90_M_10_hover_only/global_dataset/', 'global_dataset.csv', 0.8)
+
+    # Teste de validação
+    # check = pd.read_csv('dataset_canon/canon_N_50_M_20/global_dataset.csv', header = None)
+    # print('check global dataset shape',np.shape(check))
+    # print('column 50 min max mean', np.min(check[100]), np.max(check[100]), np.mean(check[100]))
+
+    # check_normalization = pd.read_csv('dataset_canon/canon_N_50_M_20/global/normalization_data.csv', header = None)
+    # print('check_normalization shape', np.shape(check_normalization))
+    # print('check_normalization[98].std\n', check_normalization[98][1])

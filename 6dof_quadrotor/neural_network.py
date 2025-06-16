@@ -10,7 +10,6 @@ import time
 from scipy.integrate import odeint
 import pickle
 import multirotor
-
 from parameters.octorotor_parameters import num_rotors
 from parameters.octorotor_parameters import m, g, I_x, I_y, I_z, l, b, d, thrust_to_weight, num_rotors
 
@@ -220,15 +219,105 @@ class ControlAllocationDataset_Split(Dataset):
 
 ### 2. Neural Network class ###
 class NeuralNetwork(nn.Module):
-    def __init__(self, num_inputs, num_outputs, num_hidden_layers):
+    def __init__(self, version:str, num_inputs:int, num_outputs:int):
         super().__init__()
-        self.layer_stack = nn.Sequential(
-            nn.Linear(in_features = num_inputs, out_features = num_hidden_layers),
-            nn.LeakyReLU(negative_slope=0.01), # inplace ?
-            nn.Linear(in_features = num_hidden_layers, out_features = num_hidden_layers),
-            nn.LeakyReLU(negative_slope=0.01),
-            nn.Linear(in_features=num_hidden_layers, out_features = num_outputs)
-        )
+        # if version == 'no_optuna':
+        #     self.layer_stack = nn.Sequential(
+        #         nn.Linear(in_features = num_inputs, out_features = num_hidden_layers),
+        #         nn.LeakyReLU(negative_slope=0.01), # inplace ?
+        #         nn.Linear(in_features = num_hidden_layers, out_features = num_hidden_layers),
+        #         nn.LeakyReLU(negative_slope=0.01),
+        #         nn.Linear(in_features=num_hidden_layers, out_features = num_outputs)
+        #     )
+        if version == 'v0':
+            self.layer_stack = nn.Sequential(
+                nn.Linear(in_features = num_inputs, out_features = 128),
+                nn.LeakyReLU(negative_slope=0.04242861410346148), # before: 0.01
+                #nn.Dropout(0.09382298344626222),
+                nn.Linear(in_features = 128, out_features = 64),
+                nn.LeakyReLU(negative_slope=0.04242861410346148),
+                #nn.Dropout(0.21326313772325148),
+                nn.Linear(in_features=64, out_features = num_outputs)
+            )
+        elif version == 'v1':
+            self.layer_stack = nn.Sequential(
+                nn.Linear(in_features = num_inputs, out_features = 1058),
+                nn.LeakyReLU(negative_slope=0.010027561298), # before: 0.01
+                #nn.Dropout(0.09382298344626222),
+                nn.Linear(in_features = 1058, out_features = 1145),
+                nn.LeakyReLU(negative_slope=0.010027561298),
+                #nn.Dropout(0.21326313772325148),
+                nn.Linear(in_features=1145, out_features = num_outputs)
+            )
+        elif version == 'v2':
+            self.layer_stack = nn.Sequential(
+                nn.Linear(in_features = num_inputs, out_features = 1276),
+                nn.LeakyReLU(negative_slope=0.036692291), # before: 0.01
+                #nn.Dropout(0.09382298344626222),
+                nn.Linear(in_features = 1276, out_features = 482),
+                nn.LeakyReLU(negative_slope=0.036692291),
+                #nn.Dropout(0.21326313772325148),
+                nn.Linear(in_features = 482, out_features = 77),
+                nn.LeakyReLU(negative_slope=0.036692291), # before: 0.01
+                nn.Linear(in_features=77, out_features = num_outputs)
+            )
+            self.optimizer = 'RMSprop'
+            self.opt_leaning_rate = 0.0001397094036
+            self.l2_lambda = 7.55128976623e-5
+
+        elif version == 'v3':
+            self.layer_stack = nn.Sequential(
+                nn.Linear(in_features = num_inputs, out_features = 1363),
+                nn.LeakyReLU(negative_slope=0.0108732857), # before: 0.01
+                #nn.Dropout(0.09382298344626222),
+                nn.Linear(in_features = 1363, out_features = 1205),
+                nn.LeakyReLU(negative_slope=0.0108732857),
+                #nn.Dropout(0.21326313772325148),
+                nn.Linear(in_features = 1205, out_features = 252),
+                nn.LeakyReLU(negative_slope=0.0108732857),
+                nn.Linear(in_features = 252, out_features = 1502),
+                nn.LeakyReLU(negative_slope=0.0108732857), # before: 0.01
+                nn.Linear(in_features=1502, out_features = num_outputs)
+            )
+            self.optimizer = 'RMSprop'
+            self.opt_leaning_rate = 0.0001001708
+            self.l2_lambda = 1.49497837616e-6
+        
+        elif version == 'v4':
+            self.layer_stack = nn.Sequential(
+                nn.Linear(in_features = num_inputs, out_features = 1276),
+                nn.LeakyReLU(negative_slope=0.036692291), # before: 0.01
+                #nn.Dropout(0.09382298344626222),
+                nn.Linear(in_features = 1276, out_features = 482),
+                nn.LeakyReLU(negative_slope=0.036692291),
+                #nn.Dropout(0.21326313772325148),
+                nn.Linear(in_features = 482, out_features = 77),
+                nn.LeakyReLU(negative_slope=0.036692291), # before: 0.01
+                nn.Linear(in_features=77, out_features = num_outputs)
+            )
+            self.optimizer = 'RMSprop'
+            self.opt_leaning_rate = 0.0001397094036
+            self.l2_lambda = 7.55128976623e-5
+        
+        elif version == 'v6_database_v5_smooth_kfold':
+            n_layer0, n_layer1, n_layer2, n_layer3 = (665, 507, 1104, 1953)
+            lrelu_negative_slope = 0.08473559984569866
+            self.layer_stack = nn.Sequential(
+                nn.Linear(in_features = num_inputs, out_features = n_layer0),
+                nn.LeakyReLU(negative_slope=lrelu_negative_slope),
+                nn.Linear(in_features = n_layer0, out_features = n_layer1),
+                nn.LeakyReLU(negative_slope=lrelu_negative_slope),
+                nn.Linear(in_features = n_layer1, out_features = n_layer2),
+                nn.LeakyReLU(negative_slope=lrelu_negative_slope),
+                nn.Linear(in_features=n_layer2, out_features = n_layer3),
+                nn.LeakyReLU(negative_slope=lrelu_negative_slope),
+                nn.Linear(in_features=n_layer3, out_features = num_outputs),
+            )
+            self.optimizer = 'RMSprop'
+            self.opt_leaning_rate = 0.00010277806356991367
+            self.l2_lambda = 5.9126412923258794e-05
+        else:
+            raise Exception('Neural network version incorrect.')
 
     def forward(self, x):
         logits = self.layer_stack(x)
@@ -429,16 +518,7 @@ class NeuralNetworkSimulator(object):
         #device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
         #print(f"Using {device} device")
         
-        if optuna_version == 'v2':
-            nn_model = NeuralNetwork_optuna2(self.num_inputs, num_rotors).to('cpu')
-        elif optuna_version == 'v3':
-            nn_model = NeuralNetwork_optuna3(self.num_inputs, num_rotors).to('cpu')
-        elif optuna_version == 'v4':
-            nn_model = NeuralNetwork_optuna4(self.num_inputs, num_rotors).to('cpu')
-        elif optuna_version == 'temp':
-            nn_model = NeuralNetwork_optuna_temp(self.num_inputs, num_rotors).to('cpu')
-        else:
-            raise Exception("Incorrect optuna version")
+        nn_model = NeuralNetwork(optuna_version,self.num_inputs, num_rotors).to('cpu')
         nn_model.load_state_dict(torch.load(nn_weights_path, weights_only=True, map_location=torch.device('cpu')))
         nn_model.eval()
 
@@ -449,11 +529,14 @@ class NeuralNetworkSimulator(object):
         omega_vector = []
             
         normalization_df = pd.read_csv(nn_weights_folder + 'normalization_data.csv', header = None)
+        omega_max = np.clip(restriction['u_max'] + omega_squared_eq, 0, None)
+        clip_max_omega = [0 if omega == 0 else None for omega in omega_max]
 
         # Control loop
         execution_time = 0
         waste_time = 0
         start_time = time.perf_counter()
+
 
         ## DEBUG (REMOVE LATER) ##
         #min_omega_squared = np.inf
@@ -511,8 +594,8 @@ class NeuralNetworkSimulator(object):
             #omega_squared = omega_squared_eq + delta_omega_squared
 
             # Fixing infinitesimal values out that violate the constraints
-            omega_squared = np.clip(omega_squared, a_min=0, a_max=np.clip(restriction['u_max'] + omega_squared_eq, 0, None))
-            #omega_squared = np.clip(omega_squared, a_min=0, a_max=None) #POIS QUERO VER SE A REDE LIMITA MANUALMENTE A TRAÇÃO
+            #omega_squared = np.clip(omega_squared, a_min=0, a_max=np.clip(restriction['u_max'] + omega_squared_eq, 0, None))
+            omega_squared = np.clip(omega_squared, a_min=0, a_max=clip_max_omega) #POIS QUERO VER SE A REDE LIMITA MANUALMENTE A TRAÇÃO
 
             # omega**2 --> u
             #print('omega_squared',omega_squared)
@@ -535,18 +618,18 @@ class NeuralNetworkSimulator(object):
                 'num_iterations': len(t_samples)-1,    
                 'nn_execution_time (s)': execution_time,
                 'nn_RMSe': 'nan',
-                'nn_min_phi': 'nan',
-                'nn_max_phi': 'nan',
-                'nn_mean_phi': 'nan',
-                'nn_std_phi': 'nan',
-                'nn_min_theta': 'nan',
-                'nn_max_theta': 'nan',
-                'nn_mean_theta': 'nan',
-                'nn_std_theta': 'nan',
-                'nn_min_psi': 'nan',
-                'nn_max_psi': 'nan',
-                'nn_mean_psi': 'nan',
-                'nn_std_psi': 'nan',
+                'nn_min_phi (rad)': 'nan',
+                'nn_max_phi (rad)': 'nan',
+                'nn_mean_phi (rad)': 'nan',
+                'nn_std_phi (rad)': 'nan',
+                'nn_min_theta (rad)': 'nan',
+                'nn_max_theta (rad)': 'nan',
+                'nn_mean_theta (rad)': 'nan',
+                'nn_std_theta (rad)': 'nan',
+                'nn_min_psi (rad)': 'nan',
+                'nn_max_psi (rad)': 'nan',
+                'nn_mean_psi (rad)': 'nan',
+                'nn_std_psi (rad)': 'nan',
                 }
                 return None, None, None, metadata
 
@@ -586,18 +669,18 @@ class NeuralNetworkSimulator(object):
             'num_iterations': len(t_samples)-1,    
             'nn_execution_time (s)': execution_time,
             'nn_RMSe': RMSe,
-            'nn_min_phi': min_phi,
-            'nn_max_phi': max_phi,
-            'nn_mean_phi': mean_phi,
-            'nn_std_phi': std_phi,
-            'nn_min_theta': min_theta,
-            'nn_max_theta': max_theta,
-            'nn_mean_theta': mean_theta,
-            'nn_std_theta': std_theta,
-            'nn_min_psi': min_psi,
-            'nn_max_psi': max_psi,
-            'nn_mean_psi': mean_psi,
-            'nn_std_psi': std_psi,
+            'nn_min_phi (rad)': min_phi,
+            'nn_max_phi (rad)': max_phi,
+            'nn_mean_phi (rad)': mean_phi,
+            'nn_std_phi (rad)': std_phi,
+            'nn_min_theta (rad)': min_theta,
+            'nn_max_theta (rad)': max_theta,
+            'nn_mean_theta (rad)': mean_theta,
+            'nn_std_theta (rad)': std_theta,
+            'nn_min_psi (rad)': min_psi,
+            'nn_max_psi (rad)': max_psi,
+            'nn_mean_psi (rad)': mean_psi,
+            'nn_std_psi (rad)': std_psi,
         }
 
         omega_vector = np.array(omega_vector)

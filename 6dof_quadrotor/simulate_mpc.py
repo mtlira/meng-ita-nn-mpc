@@ -144,7 +144,7 @@ def simulate_batch(trajectory_type, args_vector, restrictions_vector, simulate_d
                 print(f'{trajectory_type} Simulation {dataset_id}/{total_simulations}')
                 T_simulation = args[-1]
                 simulation_success, simulation_metadata, _ = simulate_mpc(X0, time_step, T_sample, T_simulation, trajectory, \
-                    restrictions, output_weights, control_weights, gain_scheduling, dataset_name, folder_name, disturb_input = False)
+                    restrictions, output_weights, control_weights, gain_scheduling, dataset_name, folder_name, disturb_input = simulate_disturbances)
 
                 #if not simulation_success:
                     #restrictions_hover = restrictions.copy()
@@ -163,27 +163,27 @@ def simulate_batch(trajectory_type, args_vector, restrictions_vector, simulate_d
                 dataset_dataframe = pd.concat([dataset_dataframe, simulation_metadata])
 
                 # Simulation with disturbances
-                if simulate_disturbances:
-                    print(f'{trajectory_type} Simulation {dataset_id}/{total_simulations}')
-                    simulation_success, simulation_metadata, _ = \
-                        simulate_mpc(X0, time_step, T_sample, T_simulation, trajectory, restrictions, output_weights, \
-                                     control_weights, gain_scheduling, dataset_name, folder_name, disturb_input = True)
+                # if simulate_disturbances:
+                #     print(f'{trajectory_type} Simulation {dataset_id}/{total_simulations}')
+                #     simulation_success, simulation_metadata, _ = \
+                #         simulate_mpc(X0, time_step, T_sample, T_simulation, trajectory, restrictions, output_weights, \
+                #                      control_weights, gain_scheduling, dataset_name, folder_name, disturb_input = True)
                     
-                    #if not simulation_success:
-                    #    #restrictions_hover = restrictions.copy()
-                    #    #restrictions_hover['y_max'][3:5] /= 2
-                    #    #restrictions_hover['y_min'] = -restrictions_hover['y_max'][3:5]
-                    #    output_weights_hover = np.copy(output_weights)
-                    #    output_weights_hover[3:5] *= 4 # Divide delta_y_max by 2 for phi and theta
-                    #    simulation_success, simulation_metadata = simulate_mpc(X0, time_step, T_sample, T_simulation, trajectory, restrictions, output_weights_hover, control_weights, dataset_name, folder_name, disturb_input = True)
+                #     #if not simulation_success:
+                #     #    #restrictions_hover = restrictions.copy()
+                #     #    #restrictions_hover['y_max'][3:5] /= 2
+                #     #    #restrictions_hover['y_min'] = -restrictions_hover['y_max'][3:5]
+                #     #    output_weights_hover = np.copy(output_weights)
+                #     #    output_weights_hover[3:5] *= 4 # Divide delta_y_max by 2 for phi and theta
+                #     #    simulation_success, simulation_metadata = simulate_mpc(X0, time_step, T_sample, T_simulation, trajectory, restrictions, output_weights_hover, control_weights, dataset_name, folder_name, disturb_input = True)
 
 
-                    simulation_metadata = wrap_metadata(dataset_id, trajectory_type, T_simulation, T_sample, N, M, simulation_success, simulation_metadata, \
-                        restrictions_metadata, True)
+                #     simulation_metadata = wrap_metadata(dataset_id, trajectory_type, T_simulation, T_sample, N, M, simulation_success, simulation_metadata, \
+                #         restrictions_metadata, True)
 
-                    if not simulation_success: failed_simulations += 1
-                    dataset_id += 1
-                    dataset_dataframe = pd.concat([dataset_dataframe, simulation_metadata])
+                #     if not simulation_success: failed_simulations += 1
+                #     dataset_id += 1
+                #     dataset_dataframe = pd.concat([dataset_dataframe, simulation_metadata])
                 if int(dataset_id) % 2 <= 1:
                     dataset_dataframe.to_csv(dataset_save_path, sep=',', index = False)
             else:
@@ -205,6 +205,7 @@ def generate_dataset(dataset_name = None):
     generate_line = False
     generate_lissajous_xy = True
     simulate_fault_tolerance = False
+    run_circle_xy_performance = False
     
     rst = Restriction(model, T_sample, N, M)
 
@@ -227,9 +228,9 @@ def generate_dataset(dataset_name = None):
         simulate_batch('circle_xy', circle_xy_args, restrictions_performance, simulate_disturbances = True, dataset_save_path=dataset_save_path)
 
     if generate_line:
-        num_lines = 40
+        num_lines = 10
         line_args = tr.generate_line_trajectories(num_lines)
-        simulate_batch('line', line_args, restrictions_performance, simulate_disturbances = True, dataset_save_path=dataset_save_path)
+        simulate_batch('line', line_args, restrictions_performance, simulate_disturbances = True, dataset_save_path=dataset_save_path, checkpoint_id=19)
 
     if generate_circle_xz:
         circle_xz_args = tr.generate_circle_xz_trajectories()
@@ -237,11 +238,16 @@ def generate_dataset(dataset_name = None):
 
     if generate_lissajous_xy:
         lissajous_xy_args = tr.generate_lissajous_xy_trajectories()
-        simulate_batch('lissajous_xy', lissajous_xy_args, restriction_normal, simulate_disturbances = False, dataset_save_path=dataset_save_path)
+        simulate_batch('lissajous_xy', lissajous_xy_args, restriction_normal, simulate_disturbances = True, dataset_save_path=dataset_save_path)
 
     if simulate_fault_tolerance:
         fault_tolerance_args = [[0, 0, 0, 20], [0,0,1,20],[0,0,-1, 20], [0, 0.5, 0.5, 20]]
         simulate_batch('point_failure', fault_tolerance_args, restrictions_fault_tolerance, simulate_disturbances = True, dataset_save_path = dataset_save_path, checkpoint_id=6)
+
+    if run_circle_xy_performance:
+        restriction_vector = [rst.restriction('normal')]
+        args = tr.generate_circle_xy_performance_analysis()
+        simulate_batch('circle_xy', args, restriction_vector, True, dataset_save_path)
 
     # Save dataset
     if len(dataset_dataframe) > 2:
