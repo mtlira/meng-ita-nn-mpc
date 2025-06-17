@@ -399,7 +399,7 @@ class DataAnalyser(object):
         plt.tight_layout()
         plt.show()
 
-    def plot_histogram(self, df, column_1, column_2, x_label, title, legend, normalization_column = None, colors=['royalblue','darkorange'], save_name = None, show_mean = True, percentile_1=None, percentile_2=None, gain = 1, num_bins=30):
+    def plot_histogram(self, df, column_1, column_2, x_label, title, legend, normalization_column = None, colors=['royalblue','darkorange'], save_name = None, show_mean = True, percentile_1=None, percentile_2=None, gain = 1, num_bins=30, stat='density'):
 
         data_1 = df[column_1]
         data_2 = df[column_2]
@@ -432,8 +432,8 @@ class DataAnalyser(object):
 
 
         plt.figure(figsize=(8,5))
-        sns.histplot(data_1, bins=bins, color=colors[0], label=legend[0], kde=True, stat='density', alpha=0.6)
-        sns.histplot(data_2, bins=bins, color=colors[1], label=legend[1], kde=True, stat='density', alpha=0.6)
+        sns.histplot(data_1, bins=bins, color=colors[0], label=legend[0], kde=True if stat == 'density' else False, stat=stat, alpha=0.6)
+        sns.histplot(data_2, bins=bins, color=colors[1], label=legend[1], kde=True if stat == 'density' else False, stat=stat, alpha=0.6)
         if show_mean:
             plt.axvline(np.mean(data_1), color=colors[0], linestyle='--', linewidth=2)
             plt.axvline(np.mean(data_2), color=colors[1], linestyle='--', linewidth=1.5)
@@ -454,9 +454,9 @@ class DataAnalyser(object):
             x_min, x_max = plt.xlim()
             plt.text(T_sample*gain + 0.01*(x_max - x_min), plt.ylim()[1]*0.9, 'Sample Time', rotation=90,va='top', ha='left', color='black', fontsize=13)
         plt.xlabel(x_label, fontsize=14)
-        plt.ylabel('Density', fontsize=14)
+        plt.ylabel('Frequency' if stat == 'count' else 'Density', fontsize=14)
         plt.title(title, fontsize=14)
-        plt.legend(fontsize=14, loc='upper center')
+        plt.legend(fontsize=14)#, loc='upper center')
         plt.grid(True, linestyle='--', alpha=0.5)
         plt.tight_layout()
         if save_name is not None: plt.savefig(f'plots/{save_name}')

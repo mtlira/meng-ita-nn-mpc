@@ -161,10 +161,10 @@ if __name__ == '__main__':
     run_circle_xz = False
     run_point = False
     run_lissajous_xy = False
-    run_line = False
+    run_line = True
     run_circle_xy_performance = False
     fault_2rotors = False
-    one_example = True
+    one_example = False
 
     restriction_vector = [rst.restriction('normal')]
     restriction_mixed = [rst.restriction('normal'), rst.restriction('total_failure', [0])]
@@ -188,8 +188,8 @@ if __name__ == '__main__':
         simulate_batch('lissajous_xy', args, restriction_vector, False)
 
     if run_line:
-        args = tr.generate_line_trajectories(50)
-        simulate_batch('line', args, restriction_vector, False)
+        args = tr.generate_line_trajectories(41)
+        simulate_batch('line', args, restriction_vector, False, checkpoint_id=21)
 
     if fault_2rotors:
         restrictions_2failures = rst.restrictions_2_rotor_faults()
