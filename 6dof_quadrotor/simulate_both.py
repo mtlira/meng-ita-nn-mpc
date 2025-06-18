@@ -161,10 +161,10 @@ if __name__ == '__main__':
     run_circle_xz = False
     run_point = False
     run_lissajous_xy = False
-    run_line = True
+    run_line = False
     run_circle_xy_performance = False
     fault_2rotors = False
-    one_example = False
+    one_example = True
 
     restriction_vector = [rst.restriction('normal')]
     restriction_mixed = [rst.restriction('normal'), rst.restriction('total_failure', [0])]
@@ -200,8 +200,8 @@ if __name__ == '__main__':
     # Simulate one example only
     if one_example:
         #restriction_fault = [rst.restriction('total_failure', [0])]
-        args = [[0, 0, -15, 20]]
-        simulate_batch('point', args, restriction_fault, disturb_input = False)
+        #args = [[0, 0, -15, 20]]
+        #simulate_batch('point', args, restriction_fault, disturb_input = False)
 
         #args = [[2*np.pi/10, 3, 30]]
         #simulate_batch('lissajous_xy', args, restriction_mixed, disturb_input = False)
@@ -213,10 +213,10 @@ if __name__ == '__main__':
         #args_point = [[0, 0, 0, 20]]
         #simulate_batch('point_failure', args_point, restriction_fault_2, disturb_input = False)
 
-        #args = [[2*np.pi/25, 2.5, 50]]
-        #simulate_batch('lissajous_3d', args, restriction_vector, disturb_input = False)
+        args = [[2*np.pi/25, 2.5, 50]]
+        simulate_batch('lissajous_3d', args, restriction_vector, disturb_input = False)
 
-        #args = [[2*np.pi/10 , 0, 0.25, 0.5, 30]]
-        #simulate_batch('helicoidal', args, restriction_fault, disturb_input = False)
+        args = [[2*np.pi/10 , 0, 0.25, 0.5, 30]]
+        simulate_batch('helicoidal', args, restriction_vector, disturb_input = False)
 
     dataset_dataframe.to_csv(dataset_mother_folder + 'dataset_metadata.csv', sep=',', index=False)
