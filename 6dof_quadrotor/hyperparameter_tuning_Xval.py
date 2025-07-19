@@ -66,6 +66,10 @@ def define_model(trial, num_inputs):
 def objective(trial):
     global k_folds
 
+    optimizer = trial.suggest_categorical("optimizer", ["Adam", "RMSprop", "SGD"])
+    learning_rate = trial.suggest_float('optimizer_learning_rate', 1e-5, 1e-1, log=True)
+    weight_decay = trial.suggest_float('l2_lambda', 0, 0.5)
+
     # Loss function
     criterion = torch.nn.MSELoss()
 
@@ -85,9 +89,6 @@ def objective(trial):
         model = define_model(trial, num_inputs).to(device)
 
         # Generate the optimizers
-        optimizer = trial.suggest_categorical("optimizer", ["Adam", "RMSprop", "SGD"])
-        learning_rate = trial.suggest_float('optimizer_learning_rate', 1e-5, 1e-1, log=True)
-        weight_decay = trial.suggest_float('l2_lambda', 0, 0.5)
         optimizer = getattr(optim, optimizer)(model.parameters(), lr=learning_rate, weight_decay = weight_decay)
 
         # Model training

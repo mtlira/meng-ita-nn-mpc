@@ -28,8 +28,8 @@ class MPC(object):
         _C = np.copy(C)
 
         if not include_psi_reference:
-            _restrictions['y_max'] = _restrictions['y_max'][:-1]
-            _restrictions['y_min'] = _restrictions['y_min'][:-1]
+            _restrictions['y_max'] = np.delete(_restrictions['y_max'], (5), axis = 0)
+            _restrictions['y_min'] = np.delete(_restrictions['y_min'], (5), axis = 0)
             _output_weights =  _output_weights[:-1]
             _C = _C[:-1]
         #print('flag2', restrictions['y_max'])
@@ -490,7 +490,7 @@ class MPC(object):
                 waste_start_time = time.perf_counter()
                 probability = np.random.rand()
                 if probability > disturb_frequency:
-                    uu_k = self.add_input_disturbance(uu_k, model)
+                    uu_k = add_input_disturbance(uu_k, model)
                 waste_end_time = time.perf_counter()
                 waste_time += waste_end_time - waste_start_time               
 
@@ -945,42 +945,6 @@ class MPC(object):
         X = X + disturbances
         return X
     
-
-    def add_input_disturbance(self, u, model):
-        '''
-        Adds small disturbances to the state vector X.
-        '''
-
-        thrust_range = 0.2*model.m*model.g
-        tx_range = 0.05*model.m*model.g*model.l
-        ty_range = tx_range
-        tz_range = tx_range
-
-        ranges = np.array([
-            thrust_range,
-            tx_range,
-            ty_range,
-            tz_range
-        ])
-
-
-        # disturbance in [-range, + range]
-        disturbances = 2*ranges*np.random.rand(len(u))  - ranges
-
-        # adding disturbances
-        u += disturbances
-
-        #Making sure thrust is not negative
-        u[0] = np.clip(u[0], a_min = 0.0, a_max=None)
-
-        return u
-    
-        # def discretize(self):
-        #     #sys = StateSpace(self.A,self.B,self.C, np.zeros((q,p)))
-        #     sys_d = cont2discrete((self.A,self.B,self.C, np.zeros((self.q,self.p))), self.T_sample, 'zoh')
-        #     Ad, Bd, Cd, _, _ = sys_d
-        #     return Ad, Bd, Cd
-    
     def RMSe(self, position, trajectory):
         delta_position = trajectory - position   # shape (N, 3)
         squared_norms = np.sum(delta_position**2, axis=1)  # Sum over x, y, z for each time step
@@ -1049,6 +1013,8 @@ class GainSchedulingMPC(object):
         u_minus_1 = np.zeros(p)
         x_k = X0
         u_k_minus_1 = u_minus_1
+        #u_k_minus_1 = 0*model.get_omega_eq_hover()**2
+        omega_squared_eq = model.get_omega_eq_hover()**2
         omega_k = model.get_omega_eq_hover()
         #alpha = model.angular_acceleration (Not being used at the moment)
         #alpha_neg = -alpha
@@ -1060,6 +1026,14 @@ class GainSchedulingMPC(object):
         # NN Dataset
         NN_dataset = [] if generate_dataset else None
         #print('q = ',q)
+
+        # Temp ###
+        omega_max = self.linear_model[(0,0)].restrictions['u_max'] + omega_squared_eq
+        clip_max_omega = np.copy(max(omega_max)*np.ones(num_rotors)) # Starting in u_eq
+        #clip_max_omega = np.array([0 if omega < 0.1 else omega for omega in omega_max])
+        failed_rotors = [{'indice': i, 'value': max(omega_squared_eq), 'reached_zero': False} for i, omega in enumerate(omega_max) if omega < 0.01]
+        omega_squared_previous = np.copy(omega_squared_eq)
+        ###
 
         execution_time = 0
         waste_time = 0
@@ -1123,10 +1097,27 @@ class GainSchedulingMPC(object):
             #print('res2.x',np.array(res2['x']).reshape((Hqp.shape[1],)))
             delta_u_k = np.concatenate((np.eye(p), np.zeros((p, p*(self.M - 1)))), axis = 1) @ res # optimal delta_u_k
             u_k = u_k_minus_1 + delta_u_k # TODO: confirmar se tem esse u_eq
+            omega_squared = u_k + linear_model.u_ref
 
             # omega**2 --> u
-            #omega_squared = np.clip(u_k + linear_model.u_ref, 0, None)
-            omega_squared = np.clip(u_k + linear_model.u_ref, a_min=0, a_max=np.clip(linear_model.restrictions['u_max'] + linear_model.u_ref, 0, None))
+            #omega_squared = np.clip(u_k + linear_model.u_ref, a_min=0, a_max=np.clip(linear_model.restrictions['u_max'] + linear_model.u_ref, 0, None))
+            #omega_squared = np.clip(u_k + linear_model.u_ref, 0, None) # Safe
+            omega_squared = np.clip(omega_squared, np.max([omega_squared_previous + linear_model.restrictions['delta_u_min'], np.zeros(num_rotors)],axis=0), np.min([omega_squared_previous + linear_model.restrictions['delta_u_max'], clip_max_omega],axis=0))
+
+            # TEMP ###
+            for rotor in failed_rotors:
+                if not rotor['reached_zero']:
+                    rotor['value'] += linear_model.restrictions['delta_u_min'][0]
+                    if rotor['value'] <= 0.01:
+                        rotor['reached_zero'] = True
+                        rotor['value'] = 0
+                    omega_squared[rotor['indice']] = rotor['value']
+                else:
+                    omega_squared[rotor['indice']] = 0
+            
+            omega_squared_previous = np.copy(omega_squared)
+                ### ###
+
             omega_k = np.sqrt(omega_squared)
             uu_k = model.Gama @ omega_squared
 
@@ -1135,7 +1126,7 @@ class GainSchedulingMPC(object):
                 waste_start_time = time.perf_counter()
                 probability = np.random.rand()
                 if probability > disturb_frequency:
-                    uu_k = linear_model.add_input_disturbance(uu_k, model)
+                    uu_k = add_input_disturbance(uu_k, model)
                 waste_end_time = time.perf_counter()
                 waste_time += waste_end_time - waste_start_time
 
@@ -1158,13 +1149,13 @@ class GainSchedulingMPC(object):
 
             waste_start_time = time.perf_counter()
 
-            if np.linalg.norm(x_k[9:12] - trajectory[k, :3]) > 60 or np.max(np.abs(x_k[0:2])) > 5: #TODO: unificar criterio de saida para todos os metodos
+            if np.linalg.norm(x_k[9:12] - trajectory[k, :3]) > 60: #TODO: unificar criterio de saida para todos os metodos
                print('Simulation exploded.')
                print(f'x_{k} =',x_k)
                return None, None, None, None, None
                   
             X_vector.append(x_k)
-            u_k_minus_1 = u_k
+            u_k_minus_1 = np.copy(u_k)
             u_vector.append(uu_k)
             omega_vector.append(omega_k)
             #delta_u_initial = np.tile(delta_u_k,self.M)
@@ -1240,6 +1231,42 @@ class GainSchedulingMPC(object):
         for i in range(num_rotors): exec(f'metadata[\'mpc_max_omega{i}\'] = np.max(omega_vector[:,{i}])')
 
         return np.array(X_vector), np.array(u_vector), omega_vector, np.asarray(NN_dataset), metadata
+
+
+def add_input_disturbance(u, model):
+    '''
+    Adds small disturbances to the state vector X.
+    '''
+
+    thrust_range = 0.2*model.m*model.g
+    tx_range = 0.05*model.m*model.g*model.l
+    ty_range = tx_range
+    tz_range = tx_range
+
+    ranges = np.array([
+        thrust_range,
+        tx_range,
+        ty_range,
+        tz_range
+    ])
+
+
+    # disturbance in [-range, + range]
+    disturbances = 2*ranges*np.random.rand(len(u))  - ranges
+
+    # adding disturbances
+    u += disturbances
+
+    #Making sure thrust is not negative
+    u[0] = np.clip(u[0], a_min = 0.0, a_max=None)
+
+    return u
+
+    # def discretize(self):
+    #     #sys = StateSpace(self.A,self.B,self.C, np.zeros((q,p)))
+    #     sys_d = cont2discrete((self.A,self.B,self.C, np.zeros((self.q,self.p))), self.T_sample, 'zoh')
+    #     Ad, Bd, Cd, _, _ = sys_d
+    #     return Ad, Bd, Cd
 
 if __name__ == '__main__':
     ## TESTE - DELETAR DEPOIS ###########################################################################

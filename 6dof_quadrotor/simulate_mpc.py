@@ -61,7 +61,7 @@ simulation_metadata = {
     'success': [],
     'RMSe': [],
     'execution_time (s)': [],
-    'operation': [],
+    'operation_mode': [],
     'failed_rotors': [],
     'ang_speed_percentages (%)': [],
     'min_phi (rad)': [],
@@ -256,9 +256,10 @@ def generate_dataset(dataset_name = None):
     print(f'Failed simulations: {failed_simulations}/{total_simulations}') # TODO: deixar mais generico (nao so pontos)
 
 def wrap_metadata(dataset_id, trajectory_type, T_simulation, T_sample, N, M, simulation_success, simulation_metadata, \
-                  restrictions_metadata, disturbed_inputs):
+                  restrictions_metadata, disturbed_inputs, trajectory_id):
     simulation_metadata = {
         'sim_id': dataset_id,
+        'trajectory_id': trajectory_id,
         'trajectory_type': trajectory_type,
         'disturbed_inputs': disturbed_inputs,
         'simulation_time (s)': T_simulation,
@@ -269,7 +270,7 @@ def wrap_metadata(dataset_id, trajectory_type, T_simulation, T_sample, N, M, sim
         'num_iterations': simulation_metadata['num_iterations'] if simulation_success else 'nan',   
         'mpc_RMSe': simulation_metadata['mpc_RMSe'] if simulation_success else 'nan',
         'mpc_execution_time (s)': simulation_metadata['mpc_execution_time'] if simulation_success else 'nan',
-        'operation': restrictions_metadata['operation'],
+        'operation_mode': restrictions_metadata['operation_mode'],
         'failed_rotors': restrictions_metadata['failed_rotors'],
         'ang_speed_percentages (%)': restrictions_metadata['ang_speed_percentages'],
         'mpc_min_phi (rad)': simulation_metadata['mpc_min_phi'] if simulation_success else 'nan',
@@ -284,14 +285,14 @@ def wrap_metadata(dataset_id, trajectory_type, T_simulation, T_sample, N, M, sim
         'mpc_max_psi (rad)': simulation_metadata['mpc_max_psi'] if simulation_success else 'nan',
         'mpc_mean_psi (rad)': simulation_metadata['mpc_mean_psi'] if simulation_success else 'nan',
         'mpc_std_psi (rad)': simulation_metadata['mpc_std_psi'] if simulation_success else 'nan',
-        'mpc_max_omega0 (rad/s)': simulation_metadata['mpc_max_omega0'] if simulation_success else 'nan',
-        'mpc_max_omega1 (rad/s)': simulation_metadata['mpc_max_omega1'] if simulation_success else 'nan',
-        'mpc_max_omega2 (rad/s)': simulation_metadata['mpc_max_omega2'] if simulation_success else 'nan',
-        'mpc_max_omega3 (rad/s)': simulation_metadata['mpc_max_omega3'] if simulation_success else 'nan',
-        'mpc_max_omega4 (rad/s)': simulation_metadata['mpc_max_omega4'] if simulation_success else 'nan',
-        'mpc_max_omega5 (rad/s)': simulation_metadata['mpc_max_omega5'] if simulation_success else 'nan',
-        'mpc_max_omega6 (rad/s)': simulation_metadata['mpc_max_omega6'] if simulation_success else 'nan',
-        'mpc_max_omega7 (rad/s)': simulation_metadata['mpc_max_omega7'] if simulation_success else 'nan',
+        'mpc_max_omega0': simulation_metadata['mpc_max_omega0'] if simulation_success else 'nan',
+        'mpc_max_omega1': simulation_metadata['mpc_max_omega1'] if simulation_success else 'nan',
+        'mpc_max_omega2': simulation_metadata['mpc_max_omega2'] if simulation_success else 'nan',
+        'mpc_max_omega3': simulation_metadata['mpc_max_omega3'] if simulation_success else 'nan',
+        'mpc_max_omega4': simulation_metadata['mpc_max_omega4'] if simulation_success else 'nan',
+        'mpc_max_omega5': simulation_metadata['mpc_max_omega5'] if simulation_success else 'nan',
+        'mpc_max_omega6': simulation_metadata['mpc_max_omega6'] if simulation_success else 'nan',
+        'mpc_max_omega7': simulation_metadata['mpc_max_omega7'] if simulation_success else 'nan',
     }
     simulation_metadata = pd.DataFrame([simulation_metadata])
     return simulation_metadata

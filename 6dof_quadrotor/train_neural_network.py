@@ -9,7 +9,7 @@ warnings.filterwarnings("ignore")
 import pandas as pd
 import time
 import pickle
-from dataset_handler import load_training_dataset
+from dataset_handler import load_dataset
 
 from parameters.octorotor_parameters import num_rotors
 
@@ -173,8 +173,8 @@ if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using {device} device")
     
-    # 1. Loading datasets and creating dataloaders
-    trainval_dataset, num_inputs = load_training_dataset(datasets_folder, num_rotors)
+    # 1. Loading training dataset
+    trainval_dataset, num_inputs = load_dataset(datasets_folder, 'training_split_normalized.npy', num_rotors)
 
     ### 2. Building the Neural Network ###
     model = NeuralNetwork(optuna_version, num_inputs, num_outputs).to(device)

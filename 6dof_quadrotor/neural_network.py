@@ -10,8 +10,10 @@ import time
 from scipy.integrate import odeint
 import pickle
 import multirotor
+from mpc import add_input_disturbance
 from parameters.octorotor_parameters import num_rotors
 from parameters.octorotor_parameters import m, g, I_x, I_y, I_z, l, b, d, thrust_to_weight, num_rotors
+from parameters.simulation_parameters import T_sample
 
 model = multirotor.Multirotor(m, g, I_x, I_y, I_z, b, l, d, num_rotors, thrust_to_weight)
 
@@ -509,10 +511,13 @@ class NeuralNetworkSimulator(object):
         self.u_ref = u_ref # input around which the model was linearized (omega_squared_eq)
         self.time_step = time_step
 
-    def simulate_neural_network(self, X0, nn_weights_folder, file_name, t_samples, trajectory, optuna_version, num_neurons_hidden_layers, restriction):
+    def simulate_neural_network(self, X0, nn_weights_folder, file_name, t_samples, trajectory, optuna_version, num_neurons_hidden_layers, restriction, disturb_input, clip:bool):
         analyser = DataAnalyser()
         nn_weights_path = nn_weights_folder + file_name
         omega_squared_eq = self.u_ref
+
+        # Disturb logic (state disturbance)
+        disturb_frequency = 0.1
 
         # 1. Load Neural Network model
         #device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
@@ -527,20 +532,44 @@ class NeuralNetworkSimulator(object):
         X_vector = [X0]
         u_vector = []
         omega_vector = []
+        omega_squared_vector = []
             
         normalization_df = pd.read_csv(nn_weights_folder + 'normalization_data.csv', header = None)
-        omega_max = np.clip(restriction['u_max'] + omega_squared_eq, 0, None)
-        clip_max_omega = [0 if omega == 0 else None for omega in omega_max]
+        mean = normalization_df.iloc[0, self.num_inputs:]
+        std = normalization_df.iloc[1, self.num_inputs:]
+        omega_max = restriction['u_max'] + omega_squared_eq
+        clip_max_omega = np.copy(max(omega_max)*np.ones(num_rotors))
+        #clip_max_omega = np.array([0 if omega < 0.1 else omega for omega in omega_max])
+        failed_rotors = [{'indice': i, 'value': max(omega_squared_eq), 'reached_zero': False} for i, omega in enumerate(omega_max) if omega < 0.01]
+        omega_squared_previous = np.copy(omega_squared_eq)
 
-        # Control loop
-        execution_time = 0
-        waste_time = 0
-        start_time = time.perf_counter()
 
 
         ## DEBUG (REMOVE LATER) ##
         #min_omega_squared = np.inf
         ## DEBUG (REMOVE LATER) ##
+
+        # TEMP - LIMITAÇÂO DE DELTA U#########################################################
+        omega_eq = self.model.get_omega_eq_hover()
+        alpha = self.model.angular_acceleration
+        delta_u_max = (2*omega_eq + alpha*T_sample)*alpha * T_sample
+        alpha = -alpha
+        delta_u_min = (2*omega_eq + alpha*T_sample)*alpha * T_sample
+        print('delta_u_min < 0:', delta_u_min < 0)
+        ####################################################################################
+
+        mean_input = normalization_df.iloc[0, :self.num_inputs].to_numpy()
+        std_input = normalization_df.iloc[1, :self.num_inputs].to_numpy()
+
+        mean_output = normalization_df.iloc[0, self.num_inputs:].to_numpy()
+        std_output = normalization_df.iloc[1, self.num_inputs:].to_numpy()
+        
+        reached_zero = False
+
+        # Control loop
+        execution_time = 0
+        waste_time = 0
+        start_time = time.perf_counter()
 
         for k in range(0, len(t_samples)-1): # TODO: confirmar se é -1 mesmo:
             # Mount input tensor to feed NN
@@ -563,9 +592,9 @@ class NeuralNetworkSimulator(object):
             #    mean = normalization_df.iloc[0, i_column]
             #    std = normalization_df.iloc[1, i_column]
             #    nn_input[i_column] = (nn_input[i_column] - mean)/std
-            mean = normalization_df.iloc[0, :self.num_inputs]
-            std = normalization_df.iloc[1, :self.num_inputs]
-            nn_input = np.array((nn_input - mean) / std)
+            #mean_input = normalization_df.iloc[0, :self.num_inputs]
+            #std_input = normalization_df.iloc[1, :self.num_inputs]
+            nn_input = np.array((nn_input - mean_input) / std_input)
 
             nn_input = nn_input.astype('float32')
 
@@ -577,9 +606,9 @@ class NeuralNetworkSimulator(object):
             #    mean = normalization_df.iloc[0, num_inputs + i_output]
             #    std = normalization_df.iloc[1, num_inputs + i_output]
             #    delta_omega_squared[i_output] = mean + std*delta_omega_squared[i_output]
-            mean = normalization_df.iloc[0, self.num_inputs:]
-            std = normalization_df.iloc[1, self.num_inputs:]
-            omega_squared = mean + std*omega_squared
+            #mean = normalization_df.iloc[0, self.num_inputs:]
+            #std = normalization_df.iloc[1, self.num_inputs:]
+            omega_squared = (mean_output + std_output*omega_squared)
 
             ## DEBUG (REMOVE LATER) ##
             #debug_omega_squared = omega_squared_eq + delta_omega_squared
@@ -588,18 +617,36 @@ class NeuralNetworkSimulator(object):
             ## DEBUG (REMOVE LATER) ##
 
             # Applying multirotor restrictions
-            #delta_omega_squared = np.clip(delta_omega_squared, restriction['u_min'], restriction['u_max'])
-            # TODO: Add restrição de rate change (ang acceleration)
-            
-            #omega_squared = omega_squared_eq + delta_omega_squared
-
             # Fixing infinitesimal values out that violate the constraints
-            #omega_squared = np.clip(omega_squared, a_min=0, a_max=np.clip(restriction['u_max'] + omega_squared_eq, 0, None))
-            omega_squared = np.clip(omega_squared, a_min=0, a_max=clip_max_omega) #POIS QUERO VER SE A REDE LIMITA MANUALMENTE A TRAÇÃO
+            #TEMP - LIMITACAO DE DELTA OMEGA###############
+            ###############################################
+            if clip:
+                omega_squared = np.clip(omega_squared, np.max([omega_squared_previous + delta_u_min, np.zeros(num_rotors)],axis=0), np.min([omega_squared_previous + delta_u_max, clip_max_omega],axis=0)) # Safe
+                
+                for rotor in failed_rotors:
+                    if not rotor['reached_zero']:
+                        rotor['value'] += delta_u_min[0]
+                        if rotor['value'] <= 0.01:
+                            rotor['reached_zero'] = True
+                            rotor['value'] = 0
+                        omega_squared[rotor['indice']] = rotor['value']
+                    else:
+                        omega_squared[rotor['indice']] = 0
+                            
+            omega_squared_previous = np.copy(omega_squared)
 
             # omega**2 --> u
             #print('omega_squared',omega_squared)
             u_k = self.model.Gama @ (omega_squared)
+
+            # Apply INPUT disturbance if enabled
+            if disturb_input and k>0:
+                waste_start_time = time.perf_counter()
+                probability = np.random.rand()
+                if probability > disturb_frequency:
+                    u_k = add_input_disturbance(u_k, model)
+                waste_end_time = time.perf_counter()
+                waste_time += waste_end_time - waste_start_time
 
             f_t_k, t_x_k, t_y_k, t_z_k = u_k # Attention for u_eq (solved the problem)
             t_simulation = np.arange(t_samples[k], t_samples[k+1], self.time_step)
@@ -609,7 +656,7 @@ class NeuralNetworkSimulator(object):
             x_k = odeint(self.model.f2, x_k, t_simulation, args = (f_t_k, t_x_k, t_y_k, t_z_k))
             x_k = x_k[-1]
 
-            if np.linalg.norm(x_k[9:12] - trajectory[k, :3]) > 60 or np.max(np.abs(x_k[0:2])) > 5: #or np.max(np.abs(x_k[0:2])) > 1.75:
+            if np.linalg.norm(x_k[9:12] - trajectory[k, :3]) > 60: #or np.max(np.abs(x_k[0:2])) > 1.75:
                 print('Simulation exploded.')
                 print(f'x_{k} =',x_k)
 
@@ -631,12 +678,13 @@ class NeuralNetworkSimulator(object):
                 'nn_mean_psi (rad)': 'nan',
                 'nn_std_psi (rad)': 'nan',
                 }
-                return None, None, None, metadata
+                return None, None, None, metadata, None
 
             waste_start_time = time.perf_counter()
             X_vector.append(x_k)
             u_vector.append(u_k)
             omega_vector.append(np.sqrt(omega_squared))
+            omega_squared_vector.append(omega_squared)
             waste_end_time = time.perf_counter()
             waste_time += waste_end_time - waste_start_time
         
@@ -664,6 +712,8 @@ class NeuralNetworkSimulator(object):
         mean_psi = np.mean(X_vector[:,2])
         std_psi = np.std(X_vector[:,2])
 
+        min_omega_squared = np.min(np.min(omega_squared_vector, axis = 0))
+
         metadata = {
             'nn_success': True,
             'num_iterations': len(t_samples)-1,    
@@ -681,12 +731,14 @@ class NeuralNetworkSimulator(object):
             'nn_max_psi (rad)': max_psi,
             'nn_mean_psi (rad)': mean_psi,
             'nn_std_psi (rad)': std_psi,
+            'nn_min_omega_squared': min_omega_squared
         }
 
         omega_vector = np.array(omega_vector)
+        omega_squared_vector = np.array(omega_squared_vector)
         for i in range(num_rotors): exec(f'metadata[\'nn_max_omega{i}\'] = np.max(omega_vector[:,{i}])')
 
-        return np.array(X_vector), np.array(u_vector), omega_vector, metadata
+        return np.array(X_vector), np.array(u_vector), omega_vector, metadata, omega_squared_vector
 
 
 

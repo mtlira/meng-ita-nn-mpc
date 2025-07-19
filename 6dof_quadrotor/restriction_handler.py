@@ -9,13 +9,14 @@ class Restriction(object):
         self.M = M
 
 
-    def restriction(self, operation_mode, rotors_idx=None):
+    def restriction(self, operation_mode, rotors_idx=None, relax_constraint=None):
         if operation_mode not in ['normal', 'total_failure', 'partial_failure']:
             raise ValueError('Operation mode not correct')
         
         omega_eq = self.model.get_omega_eq_hover()
 
         omega_max = np.sqrt(self.model.thrust_to_weight)*omega_eq # Decision: Max thrust force = 2*m*g => omega_max = sqrt(2)*omega_eq
+        if relax_constraint is not None and 'thrust' in relax_constraint: omega_max = 50*omega_eq
         omega_min = np.zeros(self.model.num_rotors)
 
         if operation_mode != 'normal':
@@ -39,10 +40,12 @@ class Restriction(object):
         #if operation_mode == 'normal' or len(rotors_idx) <= 1: y_max = np.concatenate((y_max, [1000]), axis = 0) # Adding psi = 0 reference in normal operation (In fault mode, yaw control is sacrificed)
         y_min = (-1) * y_max
 
-        #angle_max = np.array([0.7854, 0.7854, 1.2])
-        #angle_min = np.array([-0.7854, -0.7854, -1.2])
         angle_max = np.array([0.7, 0.7, 1.2])
         angle_min = np.array([-0.7, -0.7, -1.2])
+        #for i in range(15): print('WARNING: TEMPORARY ANGLE CONSTRAINTS BEING USED (0.4, 0.4, 0.6) RAD. FIX IT OR YOUR RESULTS ARE WRONG FOR THE MASTERS!!!!!!')
+        if relax_constraint is not None and 'angle' in relax_constraint:
+            angle_max = np.array([5, 5, 1000])
+            angle_min = np.array([-5, -5, -1000])
 
         restrictions = {
             'delta_u_max': delta_u_max,
@@ -80,9 +83,10 @@ class Restriction(object):
         ang_speed_percentages_string = ang_speed_percentages_string[:-1]
 
         metadata = {
-            'operation': operation_mode,
+            'operation_mode': operation_mode,
             'failed_rotors': failed_rotors,
-            'ang_speed_percentages': ang_speed_percentages_string
+            'ang_speed_percentages': ang_speed_percentages_string,
+            'rotors_idx': rotors_idx
         }
 
         return restrictions, output_weights, control_weights, metadata
@@ -124,13 +128,18 @@ class Restriction(object):
         return restrictions
 
     def restrictions_2_rotor_faults(self):
-            restrictions = []
+        restrictions = []
 
-            # 2 total failures of all rotors
-            for combination in itertools.combinations(range(self.model.num_rotors), 2):
-                restrictions.append(self.restriction('total_failure', combination))
-            return restrictions
+        # 2 total failures of all rotors
+        for combination in itertools.combinations(range(self.model.num_rotors), 2):
+            restrictions.append(self.restriction('total_failure', combination))
+        return restrictions
 
+    def restrictions_1_rotor_fault(self):
+        restrictions = []
+        for combination in itertools.combinations(range(self.model.num_rotors), 1):
+            restrictions.append(self.restriction('total_failure', combination))
+        return restrictions
     
     # def generate_restrictions(self):
 

@@ -9,7 +9,7 @@ class DataAnalyser(object):
     def __init__(self):
         self.dataset = None
 
-    def plot_states(self, X,t, X_lin = None, trajectory = None, u_vector = None, omega_vector = None, equal_scales=False, legend = [], save_path = None, plot = True, pdf=False):
+    def plot_states(self, X,t, X_lin = None, trajectory = None, u_vector = None, omega_vector = None, equal_scales=False, legend = [], save_path = None, plot = True, pdf=False, extra_dict = None, alpha=1):
         #temp
         file_extension = '.pdf' if pdf else '.png'
 
@@ -27,7 +27,7 @@ class DataAnalyser(object):
         plt.rcParams.update({'font.size': 13})
         fig, axs = plt.subplots(2, 3, figsize=(col3_width, col3_height), sharex=True)
         axs[0,0].plot(t,X[:,0])
-        if X_lin is not None: axs[0,0].plot(t,X_lin[:,0])
+        if X_lin is not None: axs[0,0].plot(t,X_lin[:,0], alpha=alpha)
         if trajectory is not None: axs[0,2].plot(np.nan, np.nan, 'g--')
         axs[0,0].set_title('$\\phi(t)$')
         axs[0,0].set_xlabel('t (s)')
@@ -35,7 +35,7 @@ class DataAnalyser(object):
         axs[0,0].grid()
 
         axs[0,1].plot(t,(-1)*X[:,1])
-        if X_lin is not None: axs[0,1].plot(t,(-1)*X_lin[:,1])
+        if X_lin is not None: axs[0,1].plot(t,(-1)*X_lin[:,1],alpha=alpha)
         if trajectory is not None: axs[0,2].plot(np.nan, np.nan, 'g--')
         axs[0,1].set_title('$\\theta(t)$')
         axs[0,1].set_xlabel('t (s)')
@@ -43,7 +43,7 @@ class DataAnalyser(object):
         axs[0,1].grid()
 
         axs[0,2].plot(t,(-1)*X[:,2])
-        if X_lin is not None: axs[0,2].plot(t,(-1)*X_lin[:,2])
+        if X_lin is not None: axs[0,2].plot(t,(-1)*X_lin[:,2],alpha=alpha)
         if trajectory is not None: axs[0,2].plot(np.nan, np.nan, 'g--')
         axs[0,2].set_title('$\\psi(t)$')
         axs[0,2].set_xlabel('t (s)')
@@ -51,7 +51,7 @@ class DataAnalyser(object):
         axs[0,2].grid()
 
         axs[1,0].plot(t,X[:,3])
-        if X_lin is not None: axs[1,0].plot(t,X_lin[:,3])
+        if X_lin is not None: axs[1,0].plot(t,X_lin[:,3],alpha=alpha)
         if trajectory is not None: axs[0,2].plot(np.nan, np.nan, 'g--')
         axs[1,0].set_title('p(t)')
         axs[1,0].set_xlabel('t (s)')
@@ -59,7 +59,7 @@ class DataAnalyser(object):
         axs[1,0].grid()
 
         axs[1,1].plot(t,(-1)*X[:,4])
-        if X_lin is not None: axs[1,1].plot(t,(-1)*X_lin[:,4])
+        if X_lin is not None: axs[1,1].plot(t,(-1)*X_lin[:,4],alpha=alpha)
         if trajectory is not None: axs[0,2].plot(np.nan, np.nan, 'g--')
         axs[1,1].set_title('q(t)')
         axs[1,1].set_xlabel('t (s)')
@@ -68,7 +68,7 @@ class DataAnalyser(object):
 
 
         axs[1,2].plot(t,(-1)*X[:,5])
-        if X_lin is not None: axs[1,2].plot(t,(-1)*X_lin[:,5])
+        if X_lin is not None: axs[1,2].plot(t,(-1)*X_lin[:,5],alpha=alpha)
         if trajectory is not None: axs[0,2].plot(np.nan, np.nan, 'g--')
         axs[1,2].set_title('r(t)')
         axs[1,2].set_xlabel('t (s)')
@@ -88,7 +88,7 @@ class DataAnalyser(object):
         # Translation
         fig, axs = plt.subplots(2, 3, figsize=(col3_width, col3_height), sharex=True)
         axs[0,0].plot(t,X[:,6])
-        if X_lin is not None: axs[0,0].plot(t,X_lin[:,6])
+        if X_lin is not None: axs[0,0].plot(t,X_lin[:,6],alpha=alpha)
         if trajectory is not None: axs[0,2].plot(np.nan, np.nan, 'g--')
         axs[0,0].set_title('u(t)')
         axs[0,0].set_xlabel('t (s)')
@@ -96,7 +96,7 @@ class DataAnalyser(object):
         axs[0,0].grid()
 
         axs[0,1].plot(t,(-1)*X[:,7])
-        if X_lin is not None: axs[0,1].plot(t,(-1)*X_lin[:,7])
+        if X_lin is not None: axs[0,1].plot(t,(-1)*X_lin[:,7],alpha=alpha)
         if trajectory is not None: axs[0,2].plot(np.nan, np.nan, 'g--')
         axs[0,1].set_title('v(t)')
         axs[0,1].set_xlabel('t (s)')
@@ -104,7 +104,7 @@ class DataAnalyser(object):
         axs[0,1].grid()
 
         axs[0,2].plot(t,(-1)*X[:,8])
-        if X_lin is not None: axs[0,2].plot(t,(-1)*X_lin[:,8])
+        if X_lin is not None: axs[0,2].plot(t,(-1)*X_lin[:,8],alpha=alpha)
         if trajectory is not None: axs[0,2].plot(np.nan, np.nan, 'g--')
         axs[0,2].set_title('w(t)')
         axs[0,2].set_xlabel('t (s)')
@@ -112,7 +112,7 @@ class DataAnalyser(object):
         axs[0,2].grid()
 
         handles.append(axs[1,0].plot(t,X[:,9])[0])
-        if X_lin is not None: handles.append(axs[1,0].plot(t,X_lin[:,9])[0])
+        if X_lin is not None: handles.append(axs[1,0].plot(t,X_lin[:,9],alpha=alpha)[0])
         if trajectory is not None: handles.append(axs[1,0].plot(t,trajectory[:,0], 'g--')[0])
         axs[1,0].set_title('x(t)')
         axs[1,0].set_xlabel('t (s)')
@@ -120,7 +120,7 @@ class DataAnalyser(object):
         axs[1,0].grid()
 
         axs[1,1].plot(t,(-1)*X[:,10])
-        if X_lin is not None: axs[1,1].plot(t,(-1)*X_lin[:,10])
+        if X_lin is not None: axs[1,1].plot(t,(-1)*X_lin[:,10],alpha=alpha)
         if trajectory is not None: axs[1,1].plot(t,-trajectory[:,1], 'g--')
         axs[1,1].set_title('y(t)')
         axs[1,1].set_xlabel('t (s)')
@@ -128,7 +128,7 @@ class DataAnalyser(object):
         axs[1,1].grid()
 
         axs[1,2].plot(t,(-1)*X[:,11])
-        if X_lin is not None: axs[1,2].plot(t,(-1)*X_lin[:,11])
+        if X_lin is not None: axs[1,2].plot(t,(-1)*X_lin[:,11],alpha=alpha)
         if trajectory is not None: axs[1,2].plot(t,-trajectory[:,2], 'g--')
         axs[1,2].set_title('z(t)')
         axs[1,2].set_xlabel('t (s)')
@@ -148,14 +148,14 @@ class DataAnalyser(object):
         #plt.subplots_adjust(left=0.083, bottom=0.083, right=0.948, top=0.914, wspace=0.23, hspace=0.31)
 
 
-        if save_path is not None: 
+        if save_path is not None:
             plt.savefig(save_path + f'x_linear{file_extension}')
             for ax in axs.reshape(-1): ax.cla()
             plt.close(fig)
             del fig
             del axs
 
-       #fig = plt.figure(figsize=(6,7.5)) # Figsize customized for 2 rotor failure
+        #fig = plt.figure(figsize=(6,7.5)) # Figsize customized for 2 rotor failure
         fig = plt.figure()
         axs = plt.axes(projection='3d')
         axs.plot3D(X[:,9], X[:,10]*(-1), X[:,11]*(-1))
@@ -163,12 +163,37 @@ class DataAnalyser(object):
         if trajectory is not None: axs.plot3D(trajectory[:,0], -trajectory[:,1], -trajectory[:,2], 'g--')
         axs.set_xlabel('x (m)')
         axs.set_ylabel('y (m)')
-        axs.set_zlabel('z (m)')
+        axs.set_zlabel('z (m)', labelpad=5)
+        #axs.set_xticks([-2, 1.5])
+        #axs.set_yticks([0, -2])
+        #axs.set_zticks([-4, -2, 0, 2])
         #axs.set_title('3D Plot')
         fig.legend(handles=handles, loc='upper right')
         axs.grid()
         fig.tight_layout()
         if equal_scales: axs.set_aspect('equal', adjustable='box')
+        if save_path is not None:
+            plt.savefig(save_path + f'3D{file_extension}')
+
+        postfix = ''
+        if extra_dict is not None:
+            postfix = '_toroid'
+            R = extra_dict['R']
+            r = extra_dict['r']
+            #n_winds = extra_dict['n_winds']
+            #w = 2*np.pi/T
+            #meshgrid
+            # Create meshgrid for u and v
+            u = np.linspace(0, 2 * np.pi, 100)
+            v = np.linspace(0, 2 * np.pi, 100)
+            U, V = np.meshgrid(u, v)
+
+            # Calculate x, y, z coordinates of the torus
+            X = (R + r * np.cos(V)) * np.cos(U) - (R+r)
+            Y = (R + r * np.cos(V)) * np.sin(U)
+            Z = r * np.sin(V)
+
+            axs.plot_surface(X, Y, Z, alpha=0.2, cmap='magma')
 
         # Remover depois################
         #axs.set_xticks([1.5, -2]) 
@@ -176,7 +201,7 @@ class DataAnalyser(object):
         #axs.set_zticks([0,-5,-10,-15,-17.5])
 
         if save_path is not None: 
-            plt.savefig(save_path + f'3D{file_extension}')
+            plt.savefig(save_path + f'3D{postfix}{file_extension}')
             axs.cla()
             plt.close(fig)
             del fig
@@ -268,6 +293,24 @@ class DataAnalyser(object):
                 plt.close(fig)
                 del fig
                 del axs
+
+            fig, axs = plt.subplots(4,2, figsize=(col2_width, col2_width))
+            for i, ax in enumerate(axs.flatten()):
+                for omega in omega_list: ax.step(t,omega[:,i])
+                ax.set_title(f'$\\Omega_{i+1} (t)$')
+                ax.set_ylabel(f'$\\Omega_{i+1} (rad/s)$')
+                ax.set_xlabel('t (s)')
+                ax.grid()
+            fig.legend(handles=handles, loc='upper center', bbox_to_anchor=(0.5, 1))
+            fig.tight_layout()
+            fig.subplots_adjust(top=0.85)
+            if save_path is not None: 
+                plt.savefig(save_path + f'inputs-rotors_Omega{file_extension}')
+                for ax in axs.reshape(-1): ax.cla()
+                plt.close(fig)
+                del fig
+                del axs    
+
         else:
             if omega_vector is not None:
                 fig, axs = plt.subplots(2, 2, figsize=(col2_width, col2_height))
@@ -342,6 +385,111 @@ class DataAnalyser(object):
                     del fig
                     del axs
 
+    def plot_omega_squared(self, omega_squared_list, t, save_path):
+        col2_width = 7
+        col2_height = 5
+        label = ['Clipped NN', 'Unclipped NN']
+        included_labels = []
+        fig, axs = plt.subplots(4,2, figsize=(col2_width, col2_width))
+        for i, ax in enumerate(axs.flatten()):
+            for omega_squared in omega_squared_list: ax.step(t,omega_squared[:,i])
+            ax.set_title(f'$\\omega^2_{i+1} (t)$')
+            ax.set_ylabel(f'$\\omega^2_{i+1} (rad^2/s^2)$')
+            ax.set_xlabel('t (s)')
+            ax.grid()
+        fig.legend(labels=['Clipped NN', 'Unclipped NN'],loc='upper center', bbox_to_anchor=(0.5, 1))
+        fig.tight_layout()
+        fig.subplots_adjust(top=0.85)
+        plt.savefig(save_path + f'inputs-rotors_squared.pdf')
+
+        fig, axs = plt.subplots(4,2, figsize=(col2_width, col2_width))
+        for i, ax in enumerate(axs.flatten()):
+            for omega_squared in omega_squared_list: ax.step(t,omega_squared[:,i])
+            ax.set_title(f'$\\Omega^2_{i+1} (t)$')
+            ax.set_ylabel(f'$\\Omega^2_{i+1} (rad^2/s^2)$')
+            ax.set_xlabel('t (s)')
+            ax.grid()
+        fig.legend(labels=['Clipped NN', 'Unclipped NN'],loc='upper center', bbox_to_anchor=(0.5, 1))
+        fig.tight_layout()
+        fig.subplots_adjust(top=0.85)
+        plt.savefig(save_path + f'inputs-rotors_squared_Omega.pdf')
+
+    def plot_states_shrink(self, X,t, X_lin = None, trajectory = None, u_vector = None, omega_vector = None, equal_scales=False, legend=['wrong','wrong','wrong'], save_path = None, plot = True, pdf=False, extra_dict = None, alpha=1):
+        #temp
+        file_extension = '.pdf' if pdf else '.png'
+
+        if trajectory is not None: trajectory = trajectory[:len(X)]
+
+        #if X_lin is not None: self.plot_xyz(X,t,X_lin,trajectory,legend, save_path)
+        handles = []
+        #plt.rcParams.update({'font.size': 8})
+        adjust_top = 0.78
+        #plt.tight_layout()
+        # Rotation
+        col3_width = 7
+        col3_height = 6
+        plt.rcParams.update({'font.family': 'serif'})
+        plt.rcParams.update({'font.size': 13})
+        fig, axs = plt.subplots(2, 3, figsize=(col3_width, col3_height))
+        axs[0,0].plot(t,X[:,0],label=legend[0])
+        if X_lin is not None: axs[0,0].plot(t,X_lin[:,0], alpha=alpha,label=legend[1])
+        if trajectory is not None: axs[0,0].plot(np.nan, np.nan, 'g--',label=legend[2])
+        axs[0,0].set_title('$\\phi(t)$')
+        axs[0,0].set_xlabel('t (s)')
+        axs[0,0].set_ylabel('$\\phi (rad)$')
+        axs[0,0].grid()
+
+        axs[0,1].plot(t,(-1)*X[:,1],label=legend[0])
+        if X_lin is not None: axs[0,1].plot(t,(-1)*X_lin[:,1],alpha=alpha,label=legend[1])
+        #if trajectory is not None: axs[0,2].plot(np.nan, np.nan, 'g--')
+        axs[0,1].set_title('$\\theta(t)$')
+        axs[0,1].set_xlabel('t (s)')
+        axs[0,1].set_ylabel('$\\theta (rad)$')
+        axs[0,1].grid()
+
+        axs[0,2].plot(t,(-1)*X[:,2],label=legend[0])
+        if X_lin is not None: axs[0,2].plot(t,(-1)*X_lin[:,2],alpha=alpha,label=legend[1])
+        if trajectory is not None: axs[0,2].plot(np.nan, np.nan, 'g--')
+        axs[0,2].set_title('$\\psi(t)$')
+        axs[0,2].set_xlabel('t (s)')
+        axs[0,2].set_ylabel('$\\psi$ (rad)')
+        axs[0,2].grid()
+
+        axs[1,0].plot(t,X[:,9],label=legend[0])
+        if X_lin is not None: axs[1,0].plot(t,X_lin[:,9],alpha=alpha,label=legend[1])
+        if trajectory is not None: axs[1,0].plot(t,trajectory[:,0], 'g--',label=legend[2])
+        axs[1,0].set_title('x(t)')
+        axs[1,0].set_xlabel('t (s)')
+        axs[1,0].set_ylabel('x (m)')
+        axs[1,0].grid()
+
+        axs[1,1].plot(t,(-1)*X[:,10],label=legend[0])
+        if X_lin is not None: axs[1,1].plot(t,(-1)*X_lin[:,10],alpha=alpha,label=legend[1])
+        if trajectory is not None: axs[1,1].plot(t,-trajectory[:,1], 'g--',label=legend[2])
+        axs[1,1].set_title('y(t)')
+        axs[1,1].set_xlabel('t (s)')
+        axs[1,1].set_ylabel('y (m)')
+        axs[1,1].grid()
+
+
+        axs[1,2].plot(t,(-1)*X[:,11],label=legend[0])
+        if X_lin is not None: axs[1,2].plot(t,(-1)*X_lin[:,11],alpha=alpha,label=legend[1])
+        if trajectory is not None: axs[1,2].plot(t,-trajectory[:,2], 'g--',label=legend[2])
+        axs[1,2].set_title('z(t)')
+        axs[1,2].set_xlabel('t (s)')
+        axs[1,2].set_ylabel('z (m)')
+        axs[1,2].grid()
+        fig.legend(legend,loc='upper center',bbox_to_anchor=(0.5, 1)) # Because there is no reference in angle values
+        #plt.subplots_adjust(left=0.083, bottom=0.083, right=0.948, top=0.914, wspace=0.23, hspace=0.31)
+        fig.tight_layout()
+        fig.subplots_adjust(top=adjust_top)
+        if save_path is not None: 
+            plt.savefig(save_path + f'x_shrink{file_extension}')
+            for ax in axs.reshape(-1): ax.cla()
+            plt.close(fig)
+            del fig
+            del axs
+
     def plot_xyz(self, X,t, X_lin, trajectory, legend, save_path):
         plt.rcParams.update({'font.size': 8})
         adjust_top = 0.84
@@ -369,15 +517,33 @@ class DataAnalyser(object):
             del fig
             del axs
         
+    def plot_3d(self, plots, plots_colors, plots_labels, t,trajectory=None, equal_scales=True, save_path=None):
+        #plots = [x,y,z]
+        fig = plt.figure()
+        axs = plt.axes(projection='3d')
+        for i in range(len(plots)): axs.plot3D(plots[i][:,0], -plots[i][:,1], -plots[i][:,2], color=plots_colors[i], label=plots_labels[i])
+        if trajectory is not None: 
+            axs.plot3D(trajectory[:,0], -trajectory[:,1], -trajectory[:,2], 'g--', label='Trajectory')
+            plots_labels.append('Trajectory')
+        axs.set_xlabel('x (m)')
+        axs.set_ylabel('y (m)')
+        axs.set_zlabel('z (m)')
+        #axs.set_title('3D Plot')
+        fig.legend(plots_labels, loc='upper right')
+        axs.grid()
+        fig.tight_layout()
+        if equal_scales: axs.set_aspect('equal', adjustable='box')
 
+        if save_path is not None:
+            plt.savefig(save_path + '3D_3curves.pdf')
 
-    def load_datasets(self, mother_folder_path):
-        for subdir, _, files in os.walk(mother_folder_path):
-            for file in files:
-                if file == 'dataset_metadata.csv':
-                    df = pd.read_csv(mother_folder_path + file, sep=',')
-                    self.dataset = df if self.dataset is None else pd.concat([self.dataset, df])
-        self.dataset.to_csv(mother_folder_path, sep='csv', index=False)
+    # def load_datasets(self, mother_folder_path):
+    #     for subdir, _, files in os.walk(mother_folder_path):
+    #         for file in files:
+    #             if file == 'dataset_metadata.csv':
+    #                 df = pd.read_csv(mother_folder_path + file, sep=',')
+    #                 self.dataset = df if self.dataset is None else pd.concat([self.dataset, df])
+    #     self.dataset.to_csv(mother_folder_path, sep='csv', index=False)
                 
     def plot_rmse_histogram(self, dataset_path, num_bins=30):
 
@@ -408,11 +574,13 @@ class DataAnalyser(object):
             df = df.sort_values(column_1, axis=0, ascending=True)
             p_idx_1 = round(percentile_1*len(df))
             x_percentile_1 = df.iloc[p_idx_1][column_1]
+            print(f'percentile 1 ({percentile_1}) =',x_percentile_1)
 
         if percentile_2 is not None:
             df = df.sort_values(column_2, axis=0, ascending=True)
             p_idx_2 = round(percentile_2*len(df))
             x_percentile_2 = df.iloc[p_idx_2][column_2]
+            print(f'percentile 2 ({percentile_2}) =',x_percentile_2)
         
         if normalization_column is not None:
             if isinstance(normalization_column, str):
@@ -499,6 +667,7 @@ class DataAnalyser(object):
         if percentile is not None: 
             p_idx = round(percentile*len(df))
             x_percentile = df.iloc[p_idx]['inter_position_RMSe']
+            print(f'percentile {percentile} =',x_percentile)
 
         #x75 = df.iloc[p75]['inter_position_RMSe']
         #print('x75\n',x75)
@@ -516,7 +685,7 @@ class DataAnalyser(object):
 
 
         plt.figure(figsize=(8,5))
-        sns.histplot(data_1, bins=bins, color=colors[0], kde=True, stat='density', alpha=0.6)
+        sns.histplot(data_1, bins=bins, color=colors[0], kde=False, stat='count', alpha=0.6)
         if show_mean: plt.axvline(np.mean(data_1), color=colors[0], linestyle='--', linewidth=2)
         x_min, x_max = plt.xlim()
         #plt.axvline(x75, color='black', linestyle='--', linewidth=2)
@@ -531,7 +700,7 @@ class DataAnalyser(object):
             x_min, x_max = plt.xlim()
             plt.text(T_sample + 0.01*(x_max - x_min), plt.ylim()[1]*0.9, 'Time sample', rotation=90,va='top', ha='left', color='black')
         plt.xlabel(x_label, fontsize=12)
-        plt.ylabel('Density', fontsize=12)
+        plt.ylabel('Frequency', fontsize=12)
         plt.title(title, fontsize=14)
         plt.legend(fontsize=12)
         plt.grid(True, linestyle='--', alpha=0.5)

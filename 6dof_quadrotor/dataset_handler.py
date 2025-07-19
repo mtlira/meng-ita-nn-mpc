@@ -24,13 +24,13 @@ def group_and_split_datasets_npy(folder_path):
     
     print(f'\tLoaded {len(global_dataset)} samples')
     print(f'\tSample length: {len(global_dataset[0])}')
-    print(f'\tDataset size: {global_dataset.nbytes / 1024**2} MB')
+    print(f'\tDataset size: {global_dataset.nbytes / 1024**3} MB')
     print('Interity check:')
     for i in range(len(global_dataset)):
         if len(global_dataset[i]) != len(global_dataset[0]):
             print(f'corrupted row: i={i}, {len(global_dataset[i])} samples')
     print('\t There are no corrupted data')
-
+    raise Exception('Protection')
     # Spliting into train and test (obs: validation happens inside the training dataset)
     training_dataset, test_dataset = train_test_split(global_dataset, test_size=0.1, random_state=50, shuffle=True)
 
@@ -131,7 +131,7 @@ def csv2npy(mother_folder_path):
                 data_bin = dataframe.to_numpy(dtype=np.float32)   # Set dtype when converting to NumPy
                 np.save(os.path.join(subdir, 'dataset.npy'), data_bin)
 
-def load_training_dataset(datasets_folder, num_outputs):
+def load_dataset(datasets_folder, dataset_name, num_outputs):
     #global_dataset = ControlAllocationDataset_Binary(datasets_folder, False, num_outputs)
     #train_size = int(0.9 * len(global_dataset))
     #test_size = len(global_dataset) - train_size
@@ -140,14 +140,25 @@ def load_training_dataset(datasets_folder, num_outputs):
     #train_dataset, test_dataset = torch.utils.data.random_split(global_dataset, [train_size, test_size])
     #num_inputs = global_dataset.num_inputs
 
-    train_dataset = np.load(datasets_folder + 'training_split_normalized.npy')
-    num_inputs = len(train_dataset[0]) - num_outputs
-    print('shape dataset',np.shape(train_dataset))
+    dataset = np.load(datasets_folder + dataset_name)
+    num_inputs = len(dataset[0]) - num_outputs
+    print('shape dataset',np.shape(dataset))
     print('number of inputs',num_inputs)
-    return train_dataset, num_inputs
+    return dataset, num_inputs
+
+def normalize_test_dataset(datasets_folder):
+    test_dataset = np.load(datasets_folder + 'test_split_not_normalized.npy')
+    normalized_data = pd.read_csv(datasets_folder + 'normalization_data.csv', sep = ',', header = None)
+    print('shape normalized dataset:', np.shape(normalized_data))
+    mean = normalized_data.iloc[0, :].values.squeeze()
+    std = normalized_data.iloc[1, :].values.squeeze()
+    test_dataset = (test_dataset - mean) / std
+    np.save(datasets_folder + 'test_split_normalized.npy', test_dataset)
+
 
 if __name__ == '__main__':
     group_and_split_datasets_npy('../Datasets/Training datasets - v5/')
+    #load_test_dataset('../Datasets/Training datasets - v5/')
 
     # group_datasets('teste/')
     # csv2npy('../Datasets/')
