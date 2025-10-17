@@ -279,12 +279,15 @@ class MPC(object):
             #res = minimize(fun= cost_function, x0=delta_u_initial, constraints=constraints_dict)#, options=opt) ######################### TODO: verificar opt ######################
             #print('Hqp',np.max(np.abs(Hqp - Hqp.T)))
            
+            # TEMP (REMOVER)
+            opts = {'maxiters' : 1000}
+
             # METODO 2 #######################################
             Hqp = Hqp.astype(np.double)
             fqp = fqp.astype(np.double)
             self.Aqp = self.Aqp.astype(np.double)
             bqp = bqp.astype(np.double)
-            res = cvxopt.solvers.qp(cvxopt.matrix(Hqp), cvxopt.matrix(fqp), cvxopt.matrix(self.Aqp), cvxopt.matrix(bqp))
+            res = cvxopt.solvers.qp(cvxopt.matrix(Hqp), cvxopt.matrix(fqp), cvxopt.matrix(self.Aqp), cvxopt.matrix(bqp), options = opts)
             x = np.array(res['x']).reshape((Hqp.shape[1],))
             ##################################################
 
@@ -1013,7 +1016,8 @@ class GainSchedulingMPC(object):
         u_minus_1 = np.zeros(p)
         x_k = X0
         u_k_minus_1 = u_minus_1
-        #u_k_minus_1 = 0*model.get_omega_eq_hover()**2
+        
+        x_k = X0
         omega_squared_eq = model.get_omega_eq_hover()**2
         omega_k = model.get_omega_eq_hover()
         #alpha = model.angular_acceleration (Not being used at the moment)
@@ -1029,10 +1033,14 @@ class GainSchedulingMPC(object):
 
         # Temp ###
         omega_max = self.linear_model[(0,0)].restrictions['u_max'] + omega_squared_eq
-        clip_max_omega = np.copy(max(omega_max)*np.ones(num_rotors)) # Starting in u_eq
-        #clip_max_omega = np.array([0 if omega < 0.1 else omega for omega in omega_max])
+        #clip_max_omega = np.copy(max(omega_max)*np.ones(num_rotors)) # Starting in u_eq
+        clip_max_omega = np.array([0 if omega < 0.1 else omega for omega in omega_max])
         failed_rotors = [{'indice': i, 'value': max(omega_squared_eq), 'reached_zero': False} for i, omega in enumerate(omega_max) if omega < 0.01]
         omega_squared_previous = np.copy(omega_squared_eq)
+        for i in range(len(clip_max_omega)):
+            if clip_max_omega[i] == 0:
+                omega_squared_previous[i] = 0
+                u_k_minus_1[i] = 0
         ###
 
         execution_time = 0
@@ -1089,6 +1097,13 @@ class GainSchedulingMPC(object):
             linear_model.Aqp = linear_model.Aqp.astype(np.double)
             bqp = bqp.astype(np.double)
             res = cvxopt.solvers.qp(cvxopt.matrix(Hqp), cvxopt.matrix(fqp), cvxopt.matrix(linear_model.Aqp), cvxopt.matrix(bqp))
+
+            temp_counter = 0
+            if res['status'] != 'optimal':
+                temp_counter += 1
+                if temp_counter > 0:
+                    print(f'solution at time {k} is {res['status']}')
+                    print('solution dict:\n',res)
             res = np.array(res['x']).reshape((Hqp.shape[1],))
             ##################################################
 
@@ -1100,20 +1115,21 @@ class GainSchedulingMPC(object):
             omega_squared = u_k + linear_model.u_ref
 
             # omega**2 --> u
-            #omega_squared = np.clip(u_k + linear_model.u_ref, a_min=0, a_max=np.clip(linear_model.restrictions['u_max'] + linear_model.u_ref, 0, None))
             #omega_squared = np.clip(u_k + linear_model.u_ref, 0, None) # Safe
-            omega_squared = np.clip(omega_squared, np.max([omega_squared_previous + linear_model.restrictions['delta_u_min'], np.zeros(num_rotors)],axis=0), np.min([omega_squared_previous + linear_model.restrictions['delta_u_max'], clip_max_omega],axis=0))
+            omega_squared = np.clip(u_k + linear_model.u_ref, a_min=0, a_max=np.clip(linear_model.restrictions['u_max'] + linear_model.u_ref, 0, None))
+            #omega_squared = np.clip(u_k + linear_model.u_ref, 0,  a_max=clip_max_omega) # Temp
+            #omega_squared = np.clip(omega_squared, np.max([omega_squared_previous + linear_model.restrictions['delta_u_min'], np.zeros(num_rotors)],axis=0), np.min([omega_squared_previous + linear_model.restrictions['delta_u_max'], clip_max_omega],axis=0))
 
             # TEMP ###
-            for rotor in failed_rotors:
-                if not rotor['reached_zero']:
-                    rotor['value'] += linear_model.restrictions['delta_u_min'][0]
-                    if rotor['value'] <= 0.01:
-                        rotor['reached_zero'] = True
-                        rotor['value'] = 0
-                    omega_squared[rotor['indice']] = rotor['value']
-                else:
-                    omega_squared[rotor['indice']] = 0
+            # for rotor in failed_rotors:
+            #     if not rotor['reached_zero']:
+            #         rotor['value'] += linear_model.restrictions['delta_u_min'][0]
+            #         if rotor['value'] <= 0.01:
+            #             rotor['reached_zero'] = True
+            #             rotor['value'] = 0
+            #         omega_squared[rotor['indice']] = rotor['value']
+            #     else:
+            #         omega_squared[rotor['indice']] = 0
             
             omega_squared_previous = np.copy(omega_squared)
                 ### ###

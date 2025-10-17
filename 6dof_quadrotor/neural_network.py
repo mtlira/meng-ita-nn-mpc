@@ -535,14 +535,13 @@ class NeuralNetworkSimulator(object):
         omega_squared_vector = []
             
         normalization_df = pd.read_csv(nn_weights_folder + 'normalization_data.csv', header = None)
-        mean = normalization_df.iloc[0, self.num_inputs:]
-        std = normalization_df.iloc[1, self.num_inputs:]
         omega_max = restriction['u_max'] + omega_squared_eq
-        clip_max_omega = np.copy(max(omega_max)*np.ones(num_rotors))
-        #clip_max_omega = np.array([0 if omega < 0.1 else omega for omega in omega_max])
+        #clip_max_omega = np.copy(max(omega_max)*np.ones(num_rotors))
+        clip_max_omega = np.array([0 if omega < 0.1 else omega for omega in omega_max])
         failed_rotors = [{'indice': i, 'value': max(omega_squared_eq), 'reached_zero': False} for i, omega in enumerate(omega_max) if omega < 0.01]
         omega_squared_previous = np.copy(omega_squared_eq)
-
+        for i in range(len(clip_max_omega)):
+            if clip_max_omega[i] == 0: omega_squared_previous[i] = 0
 
 
         ## DEBUG (REMOVE LATER) ##
@@ -555,7 +554,6 @@ class NeuralNetworkSimulator(object):
         delta_u_max = (2*omega_eq + alpha*T_sample)*alpha * T_sample
         alpha = -alpha
         delta_u_min = (2*omega_eq + alpha*T_sample)*alpha * T_sample
-        print('delta_u_min < 0:', delta_u_min < 0)
         ####################################################################################
 
         mean_input = normalization_df.iloc[0, :self.num_inputs].to_numpy()
@@ -623,15 +621,15 @@ class NeuralNetworkSimulator(object):
             if clip:
                 omega_squared = np.clip(omega_squared, np.max([omega_squared_previous + delta_u_min, np.zeros(num_rotors)],axis=0), np.min([omega_squared_previous + delta_u_max, clip_max_omega],axis=0)) # Safe
                 
-                for rotor in failed_rotors:
-                    if not rotor['reached_zero']:
-                        rotor['value'] += delta_u_min[0]
-                        if rotor['value'] <= 0.01:
-                            rotor['reached_zero'] = True
-                            rotor['value'] = 0
-                        omega_squared[rotor['indice']] = rotor['value']
-                    else:
-                        omega_squared[rotor['indice']] = 0
+                # for rotor in failed_rotors:
+                #     if not rotor['reached_zero']:
+                #         rotor['value'] += delta_u_min[0]
+                #         if rotor['value'] <= 0.01:
+                #             rotor['reached_zero'] = True
+                #             rotor['value'] = 0
+                #         omega_squared[rotor['indice']] = rotor['value']
+                #     else:
+                #         omega_squared[rotor['indice']] = 0
                             
             omega_squared_previous = np.copy(omega_squared)
 

@@ -25,7 +25,7 @@ class DataAnalyser(object):
         col3_height = 6
         plt.rcParams.update({'font.family': 'serif'})
         plt.rcParams.update({'font.size': 13})
-        fig, axs = plt.subplots(2, 3, figsize=(col3_width, col3_height), sharex=True)
+        fig, axs = plt.subplots(2, 3, figsize=(col3_width, col3_height), sharex=False)
         axs[0,0].plot(t,X[:,0])
         if X_lin is not None: axs[0,0].plot(t,X_lin[:,0], alpha=alpha)
         if trajectory is not None: axs[0,2].plot(np.nan, np.nan, 'g--')
@@ -86,7 +86,7 @@ class DataAnalyser(object):
             del axs
 
         # Translation
-        fig, axs = plt.subplots(2, 3, figsize=(col3_width, col3_height), sharex=True)
+        fig, axs = plt.subplots(2, 3, figsize=(col3_width, col3_height), sharex=False)
         axs[0,0].plot(t,X[:,6])
         if X_lin is not None: axs[0,0].plot(t,X_lin[:,6],alpha=alpha)
         if trajectory is not None: axs[0,2].plot(np.nan, np.nan, 'g--')
@@ -166,7 +166,7 @@ class DataAnalyser(object):
         axs.set_zlabel('z (m)', labelpad=5)
         #axs.set_xticks([-2, 1.5])
         #axs.set_yticks([0, -2])
-        #axs.set_zticks([-4, -2, 0, 2])
+        #axs.set_zticks([-3,-1.5,0,1.5,3])
         #axs.set_title('3D Plot')
         fig.legend(handles=handles, loc='upper right')
         axs.grid()
@@ -565,19 +565,19 @@ class DataAnalyser(object):
         plt.tight_layout()
         plt.show()
 
-    def plot_histogram(self, df, column_1, column_2, x_label, title, legend, normalization_column = None, colors=['royalblue','darkorange'], save_name = None, show_mean = True, percentile_1=None, percentile_2=None, gain = 1, num_bins=30, stat='density'):
-
+    def plot_histogram(self, df_hist, column_1, column_2, x_label, title, legend, normalization_column = None, colors=['royalblue','darkorange'], save_name = None, show_mean = True, percentile_1=None, percentile_2=None, gain = 1, num_bins=30, stat='density', y_text_1_frac = 0.9, y_text_2_frac = 0.9):
+        df = df_hist.sort_values(column_1, axis=0, ascending=True)
         data_1 = df[column_1]
         data_2 = df[column_2]
 
         if percentile_1 is not None:
-            df = df.sort_values(column_1, axis=0, ascending=True)
+            df = df_hist.sort_values(column_1, axis=0, ascending=True)
             p_idx_1 = round(percentile_1*len(df))
             x_percentile_1 = df.iloc[p_idx_1][column_1]
             print(f'percentile 1 ({percentile_1}) =',x_percentile_1)
 
         if percentile_2 is not None:
-            df = df.sort_values(column_2, axis=0, ascending=True)
+            df = df_hist.sort_values(column_2, axis=0, ascending=True)
             p_idx_2 = round(percentile_2*len(df))
             x_percentile_2 = df.iloc[p_idx_2][column_2]
             print(f'percentile 2 ({percentile_2}) =',x_percentile_2)
@@ -609,16 +609,16 @@ class DataAnalyser(object):
         if percentile_1 is not None:
             x_min, x_max = plt.xlim()
             plt.axvline(x_percentile_1, color=colors[0], linestyle='--', linewidth=2)
-            plt.text(x_percentile_1 + 0.01*(x_max - x_min), plt.ylim()[1]*0.9, f'MPC Percentile {int(100*percentile_1)}%', rotation=90,va='top', ha='left', color=colors[0], fontsize=13)
+            plt.text(x_percentile_1 + 0.01*(x_max - x_min), plt.ylim()[1]*y_text_1_frac, f'MPC Percentile {int(100*percentile_1)}%', rotation=90,va='top', ha='left', color=colors[0], fontsize=13)
 
         if percentile_2 is not None:
             x_min, x_max = plt.xlim()
             plt.axvline(x_percentile_2, color=colors[1], linestyle='--', linewidth=2)
-            plt.text(x_percentile_2 + 0.01*(x_max - x_min), plt.ylim()[1]*0.9, f'NN Percentile {int(100*percentile_2)}%', rotation=90,va='top', ha='left', color=colors[1], fontsize=13)
+            plt.text(x_percentile_2 + 0.01*(x_max - x_min), plt.ylim()[1]*y_text_2_frac, f'NN Percentile {int(100*percentile_2)}%', rotation=90,va='top', ha='left', color=colors[1], fontsize=13)
 
-        if 'execution_time' in column_1 and 'num_iterations' in normalization_column:
+        if 'ex_time' in column_1:
             from parameters.simulation_parameters import T_sample
-            plt.axvline(T_sample*gain, color='black', linestyle='--', linewidth=2)
+            plt.axvline(T_sample*gain, color='black', linestyle='--', linewidth=1)
             x_min, x_max = plt.xlim()
             plt.text(T_sample*gain + 0.01*(x_max - x_min), plt.ylim()[1]*0.9, 'Sample Time', rotation=90,va='top', ha='left', color='black', fontsize=13)
         plt.xlabel(x_label, fontsize=14)
@@ -659,14 +659,14 @@ class DataAnalyser(object):
         return table
 
 
-    def plot_histogram_temp(self, df, column_1, x_label, title, normalization_column = None, colors=['royalblue','darkorange'], save_name = None, show_mean = True, percentile=None):
+    def plot_histogram_temp(self, df_hist, column_1, x_label, title, normalization_column = None, colors=['royalblue','darkorange'], save_name = None, show_mean = True, percentile=None):
+        df = df_hist.sort_values(column_1, axis=0, ascending=True)
         data_1 = df[column_1]
-        df = df.sort_values('inter_position_RMSe', axis=0, ascending=True)
         
         #p75 = round(0.75*len(df))
         if percentile is not None: 
             p_idx = round(percentile*len(df))
-            x_percentile = df.iloc[p_idx]['inter_position_RMSe']
+            x_percentile = df.iloc[p_idx][column_1]
             print(f'percentile {percentile} =',x_percentile)
 
         #x75 = df.iloc[p75]['inter_position_RMSe']

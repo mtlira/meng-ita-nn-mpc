@@ -116,8 +116,8 @@ def simulate_mpc_nn(X0, multirotor_model, N, M, num_inputs, q_neuralnetwork, ome
 
     #if x_nn is not None: analyser.plot_omega_squared(omega_squared_nn, t_samples[:np.shape(omega_squared_nn)[0]], simulation_save_path)
     if x_nn is not None and x_mpc is not None: 
-        analyser.plot_states(x_mpc, t_samples[:np.shape(x_nn)[0]], X_lin=x_nn, trajectory=trajectory[:len(t_samples)], u_vector=[u_mpc, u_nn], omega_vector=[omega_mpc, omega_nn], legend=legend, equal_scales=True, save_path=simulation_save_path, plot=False, pdf=True, extra_dict = dict_toroid,alpha=1)
-        analyser.plot_states_shrink(x_mpc, t_samples[:np.shape(x_nn)[0]], X_lin=x_nn, trajectory=trajectory[:len(t_samples)], u_vector=[u_mpc, u_nn], omega_vector=[omega_mpc, omega_nn], legend=legend, equal_scales=True, save_path=simulation_save_path, plot=False, pdf=True, extra_dict = dict_toroid,alpha=1)
+        analyser.plot_states(x_mpc, t_samples[:np.shape(x_nn)[0]], X_lin=x_nn, trajectory=trajectory[:len(t_samples)], u_vector=[u_mpc, u_nn], omega_vector=[omega_mpc, omega_nn], legend=legend, equal_scales=True, save_path=simulation_save_path, plot=False, pdf=True, extra_dict = dict_toroid,alpha=0.77)
+        analyser.plot_states_shrink(x_mpc, t_samples[:np.shape(x_nn)[0]], X_lin=x_nn, trajectory=trajectory[:len(t_samples)], u_vector=[u_mpc, u_nn], omega_vector=[omega_mpc, omega_nn], legend=legend, equal_scales=True, save_path=simulation_save_path, plot=False, pdf=True, extra_dict = dict_toroid,alpha=0.77)
     elif x_mpc is not None: analyser.plot_states(x_mpc, t_samples[:np.shape(x_mpc)[0]], trajectory=trajectory[:len(t_samples)], u_vector=[u_mpc], omega_vector=[omega_mpc], legend=['MPC', 'Trajectory'], equal_scales=True, save_path=simulation_save_path, plot=False, pdf=True)
     elif x_nn is not None:  analyser.plot_states(x_nn, t_samples[:np.shape(x_nn)[0]], trajectory=trajectory[:len(t_samples)], u_vector=[u_nn], omega_vector=[omega_nn], legend=['NN', 'Trajectory'], equal_scales=True, save_path=simulation_save_path, plot=False, pdf=True)
 
@@ -406,14 +406,14 @@ if __name__ == '__main__':
     run_lissajous_xy = False
     run_line = False
     run_circle_xy_performance = False
-    fault_2rotors = True
-    one_example = False
+    fault_2rotors = False
+    one_example = True
     reasonable_traj_dataset_normal_and_single_failure = False
     single_rotor_combination = False
 
     restriction_vector = [rst.restriction('normal')]
     restriction_fault = [rst.restriction('total_failure', [0])]
-    restriction_fault_2 = [rst.restriction('total_failure', [1,2])]
+    restriction_fault_2 = [rst.restriction('total_failure', [0,1])]
     restriction_mixed = [rst.restriction('normal'), rst.restriction('total_failure', [0])]
 
     if run_circle_xy:
@@ -438,7 +438,7 @@ if __name__ == '__main__':
 
     if fault_2rotors:
         restrictions_2failures = rst.restrictions_2_rotor_faults()
-        args = [[0, 0, 0, 25]]
+        args = [[0, 0, 0, 60]]
         simulate_batch('point_failure', args, restrictions_2failures, disturb_input=False,mode='constrained_mpc_and_nn')
 
     if single_rotor_combination:
@@ -467,27 +467,28 @@ if __name__ == '__main__':
         #args = [[0, 0, -15, 20]]
         #simulate_batch('point', args, restriction_fault, disturb_input = False)
 
-        #args = [[2*np.pi/10, 3, 30]]
-        #simulate_batch('lissajous_xy', args, restriction_fault, disturb_input = False, mode='constrained_mpc_and_nn') 
+        args = [[2*np.pi/10, 3, 30]]
+        simulate_batch('lissajous_xy', args, restriction_fault, disturb_input = False, mode='constrained_mpc_and_nn') 
 
         #args_circle = [[2*np.pi/13, 5, 26]]
-        #imulate_batch('circle_xy', args_circle, restriction_vector, disturb_input = False, mode = 'constrained_mpc_and_nn')
+        #args_temp = [[2*np.pi/14, 6.5, 14*1.25]]
+        #simulate_batch('circle_xy', args_circle, restriction_vector, disturb_input = False, mode = 'constrained_mpc_and_nn')
 
         # x, y, z, 
         #args_point = [[0, 0, 0, 15]]
-        #simulate_batch('point', args_point, restriction_vector, disturb_input = True, mode='constrained_and_unconstrained_mpc_and_nn')
+        #simulate_batch('point', args_point, restriction_fault_2, disturb_input = False, mode='constrained_mpc_and_nn')
 
         #args_line = [[4,4,4, 1000, 25]]
         #simulate_batch('line', args_line, restriction_vector, False)
 
         #args = [[2*np.pi/25, 2.5, 50]]
-        #simulate_batch('lissajous_3d', args, restriction_fault, disturb_input = True, mode = 'constrained_mpc_and_nn')
+        #simulate_batch('lissajous_3d', args, restriction_vector, disturb_input = False, mode = 'constrained_mpc_and_nn')
 
         #args = [[2*np.pi/10 , 0, 0.25, 0.5, 30]]
         #simulate_batch('helicoidal', args, restriction_fault, disturb_input = True,compare_nns=True)
 
-        args = [[7, 3, 2*np.pi/100, 10, 100]]
-        simulate_batch('spiral_toroid', args, restriction_fault, disturb_input=True,mode='constrained_mpc_and_nn')
+       # args = [[7, 3, 2*np.pi/100, 10, 100]]
+        #simulate_batch('spiral_toroid', args, restriction_vector, disturb_input=False,mode='constrained_mpc_and_nn')
 
         # Maximum thrust constraint handling ####################
         # trajectory_type='point'
