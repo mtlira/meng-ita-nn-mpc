@@ -126,6 +126,7 @@ def simulate_mpc(X0, time_step, T_sample, T_simulation, trajectory, restrictions
 def simulate_batch(trajectory_type, args_vector, restrictions_vector, simulate_disturbances, dataset_save_path, checkpoint_id = None):
     # 3. Simulation of POINT trajectories
     global dataset_id
+    global trajectory_id
     global total_simulations
     global failed_simulations
     global dataset_dataframe
@@ -134,6 +135,7 @@ def simulate_batch(trajectory_type, args_vector, restrictions_vector, simulate_d
     if simulate_disturbances: total_simulations *= 2
     tr = trajectory_handler.TrajectoryHandler()
     for args in args_vector:
+        trajectory_id += 1
         for restrictions, output_weights, control_weights, restrictions_metadata in restrictions_vector:
             if checkpoint_id is None or dataset_id >= checkpoint_id:
                 trajectory = tr.generate_trajectory(trajectory_type, args, include_psi_reference, include_phi_theta_reference)
@@ -154,7 +156,7 @@ def simulate_batch(trajectory_type, args_vector, restrictions_vector, simulate_d
                 #    simulation_success, simulation_metadata, _ = simulate_mpc(X0, time_step, T_sample, T_simulation, trajectory, restrictions, output_weights_hover, control_weights, dataset_name, folder_name, disturb_input = False, gain_scheduling=True)
 
                 simulation_metadata = wrap_metadata(dataset_id, trajectory_type, T_simulation, T_sample, N, M, simulation_success, \
-                                                    simulation_metadata, restrictions_metadata, False)
+                                                    simulation_metadata, restrictions_metadata, False, trajectory_id)
 
                 if not simulation_success: failed_simulations += 1
                 dataset_id += 1
@@ -190,6 +192,7 @@ def simulate_batch(trajectory_type, args_vector, restrictions_vector, simulate_d
                 if simulate_disturbances: dataset_id += 1
     # Reset_id
     dataset_id = 1
+    trajectory_id = 0
 
 def generate_dataset(dataset_name = None):
     if dataset_name is None:
@@ -298,6 +301,7 @@ def wrap_metadata(dataset_id, trajectory_type, T_simulation, T_sample, N, M, sim
 
 if __name__ == '__main__':
     try:
+        trajectory_id = 0
         now = datetime.now()
         current_time = now.strftime("%m_%d_%Hh-%Mm")
         dataset_name = current_time
