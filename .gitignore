@@ -8,3 +8,5 @@ teste/
 **/comparative_simulations/
 aiaa_test/
 training_results/**
+!training_results/model_weights.pth
+!training_results/normalization_data.csv
