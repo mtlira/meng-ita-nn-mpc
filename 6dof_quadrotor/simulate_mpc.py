@@ -5,7 +5,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.pylab as pylab
 import sympy as sp
-from pid import PID
 from plots import *
 from linearize import *
 import control as ct

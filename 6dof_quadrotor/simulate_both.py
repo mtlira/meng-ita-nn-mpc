@@ -13,21 +13,16 @@ from pathlib import Path
 
 # Script for generating batches of comparative simulations between the neural network and the MPC.
 
-#use_optuna_model = True
-
 ### MULTIROTOR PARAMETERS ###
 from parameters.octorotor_parameters import m, g, I_x, I_y, I_z, l, b, d, num_rotors, thrust_to_weight
 
 ### Create model of multirotor ###
 multirotor_model = multirotor.Multirotor(m, g, I_x, I_y, I_z, b, l, d, num_rotors, thrust_to_weight)
 
-num_neurons_hidden_layers = 128 # TODO: AUTOMATIZAR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
 ### SIMULATION PARAMETERS ###
 from parameters.simulation_parameters import time_step, T_sample, N, M, gain_scheduling, include_phi_theta_reference, include_psi_reference
 q_neuralnetwork = 3 # Number of MPC outputs (x, y z)
-num_inputs = 205 - num_rotors # TODO: AUTOMATIZAR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+num_inputs = 205 - num_rotors # This can be improved to automatically fetch the number of inputs based on the trained neural network's number of inputs and outputs
 
 # Initial condition
 X0 = np.array([0,0,0,0,0,0,0,0,0,0,0,0])
@@ -40,8 +35,8 @@ omega_squared_eq = omega_eq**2
 tr = trajectory_handler.TrajectoryHandler()
 
 def simulate_mpc_nn(X0, multirotor_model, N, M, num_inputs, q_neuralnetwork, omega_squared_eq, dataset_mother_folder, weights_file_name, time_step, T_sample, T_simulation, trajectory, trajectory_type, restriction, restriction_metadata, output_weights, control_weights, \
-                    gain_scheduling, disturb_input, num_neurons_hidden_layers, optuna_version, trajectory_metadata = None):
-    
+                    gain_scheduling, disturb_input, optuna_version, trajectory_metadata = None):
+    '''Simulate constrained MPC and neural network comparatively for a same trajectory'''
     global dataset_dataframe
     global dataset_id
     global trajectory_id
@@ -51,8 +46,7 @@ def simulate_mpc_nn(X0, multirotor_model, N, M, num_inputs, q_neuralnetwork, ome
 
     simulator = NeuralNetworkSimulator(multirotor_model, N, M, num_inputs, num_rotors, q_neuralnetwork, omega_squared_eq, time_step)
 
-    x_nn, u_nn, omega_nn, nn_metadata, omega_squared_nn = simulator.simulate_neural_network(X0, dataset_mother_folder, weights_file_name, t_samples, trajectory, optuna_version=optuna_version,\
-                                num_neurons_hidden_layers=num_neurons_hidden_layers, restriction=restriction, disturb_input=disturb_input, clip=True)
+    x_nn, u_nn, omega_nn, nn_metadata, omega_squared_nn = simulator.simulate_neural_network(X0, dataset_mother_folder, weights_file_name, t_samples, trajectory, optuna_version=optuna_version, restriction=restriction, disturb_input=disturb_input, clip=True)
     
     mpc_success, mpc_metadata, simulation_data = simulate_mpc(X0, time_step, T_sample, T_simulation, trajectory, restriction, output_weights, control_weights, gain_scheduling,\
                                 disturb_input=disturb_input, plot=False)
@@ -105,7 +99,8 @@ def simulate_mpc_nn(X0, multirotor_model, N, M, num_inputs, q_neuralnetwork, ome
 
 
 def simulate_2_nns(X0, multirotor_model, N, M, num_inputs, q_neuralnetwork, omega_squared_eq, dataset_mother_folder, weights_file_name, time_step, T_sample, T_simulation, trajectory, trajectory_type, restriction, restriction_metadata, output_weights, control_weights, \
-                    gain_scheduling, disturb_input, num_neurons_hidden_layers, optuna_version, trajectory_metadata = None):
+                    gain_scheduling, disturb_input, optuna_version, trajectory_metadata = None):
+    '''Simulate output-clipped and unclipped neural networks'''
     # Simulate clipped and unclipped NNs
     
     global dataset_dataframe_nn
@@ -117,10 +112,10 @@ def simulate_2_nns(X0, multirotor_model, N, M, num_inputs, q_neuralnetwork, omeg
     simulator = NeuralNetworkSimulator(multirotor_model, N, M, num_inputs, num_rotors, q_neuralnetwork, omega_squared_eq, time_step)
 
     x_nn, u_nn, omega_nn, nn_metadata, omega_squared_nn = simulator.simulate_neural_network(X0, dataset_mother_folder, weights_file_name, t_samples, trajectory, optuna_version=optuna_version,\
-                                num_neurons_hidden_layers=num_neurons_hidden_layers, restriction=restriction, disturb_input=disturb_input, clip=True)
+                                restriction=restriction, disturb_input=disturb_input, clip=True)
     
     x_nn2, u_nn2, omega_nn2, nn_metadata2, omega_squared_nn2 = simulator.simulate_neural_network(X0, dataset_mother_folder, weights_file_name, t_samples, trajectory, optuna_version=optuna_version,\
-                                num_neurons_hidden_layers=num_neurons_hidden_layers, restriction=restriction, disturb_input=disturb_input, clip=False)
+                                restriction=restriction, disturb_input=disturb_input, clip=False)
     
     simulation_metadata = nn_metadata
     for key in list(nn_metadata2.keys()):
@@ -168,7 +163,8 @@ def simulate_2_nns(X0, multirotor_model, N, M, num_inputs, q_neuralnetwork, omeg
     dataset_id += 1
 
 def simulate_mpc_nn_2(X0, multirotor_model, N, M, num_inputs, q_neuralnetwork, omega_squared_eq, dataset_mother_folder, weights_file_name, time_step, T_sample, T_simulation, trajectory, trajectory_type, restriction, restriction_metadata, output_weights, control_weights, \
-                    gain_scheduling, disturb_input, num_neurons_hidden_layers, optuna_version, trajectory_metadata = None, restrictions_unconstrained=None):
+                    gain_scheduling, disturb_input, optuna_version, trajectory_metadata = None, restrictions_unconstrained=None):
+    '''Simulate constrained MPC, neural network and thrust or angle-unconstrained MPC'''
     # Simulate Constrained MPC, NN and ANGLE-Unconstrained MPC.
     global dataset_dataframe
     global dataset_id
@@ -180,7 +176,7 @@ def simulate_mpc_nn_2(X0, multirotor_model, N, M, num_inputs, q_neuralnetwork, o
     simulator = NeuralNetworkSimulator(multirotor_model, N, M, num_inputs, num_rotors, q_neuralnetwork, omega_squared_eq, time_step)
 
     x_nn, u_nn, omega_nn, nn_metadata, omega_squared_nn = simulator.simulate_neural_network(X0, dataset_mother_folder, weights_file_name, t_samples, trajectory, optuna_version=optuna_version,\
-                                num_neurons_hidden_layers=num_neurons_hidden_layers, restriction=restriction, disturb_input=disturb_input, clip=True)
+                                restriction=restriction, disturb_input=disturb_input, clip=True)
     
     mpc_success, mpc_metadata, simulation_data = simulate_mpc(X0, time_step, T_sample, T_simulation, trajectory, restriction, output_weights, control_weights, gain_scheduling,\
                                 disturb_input=disturb_input, plot=False)
@@ -241,74 +237,6 @@ def simulate_mpc_nn_2(X0, multirotor_model, N, M, num_inputs, q_neuralnetwork, o
     
     elif x_nn is not None:  analyser.plot_states(x_nn, t_samples[:np.shape(x_nn)[0]], trajectory=trajectory[:len(t_samples)], u_vector=[u_nn], omega_vector=[omega_nn], legend=['NN', 'Trajectory'], equal_scales=True, save_path=simulation_save_path, plot=False, pdf=True)
     dataset_id += 1
-
-# def simulate_mpc_nn_3(X0, multirotor_model, N, M, num_inputs, q_neuralnetwork, omega_squared_eq, dataset_mother_folder, weights_file_name, time_step, T_sample, T_simulation, trajectory, trajectory_type, restriction, restriction_metadata, output_weights, control_weights, \
-#                     gain_scheduling, disturb_input, num_neurons_hidden_layers, optuna_version, restrictions_thrust_unconstrained, trajectory_metadata = None):
-#     # Simulate Constrained MPC, NN and THRUST-Unconstrained MPC.
-#     global dataset_dataframe
-#     global dataset_id
-#     t_samples = np.arange(0, T_simulation, T_sample)
-#     analyser = DataAnalyser()
-#     simulation_save_path = f'{dataset_mother_folder}comparative_simulations/{trajectory_type}/{str(dataset_id)}/'
-
-#     simulator = NeuralNetworkSimulator(multirotor_model, N, M, num_inputs, num_rotors, q_neuralnetwork, omega_squared_eq, time_step)
-
-#     x_nn, u_nn, omega_nn, nn_metadata, omega_squared_nn = simulator.simulate_neural_network(X0, dataset_mother_folder, weights_file_name, t_samples, trajectory, optuna_version=optuna_version,\
-#                                 num_neurons_hidden_layers=num_neurons_hidden_layers, restriction=restriction, disturb_input=disturb_input, clip=False)
-    
-#     mpc_success, mpc_metadata, simulation_data = simulate_mpc(X0, time_step, T_sample, T_simulation, trajectory, restriction, output_weights, control_weights, gain_scheduling,\
-#                                 disturb_input=disturb_input, plot=False)
-#     x_mpc, u_mpc, omega_mpc, _ = simulation_data if simulation_data is not None else [None, None, None, None]
-
-#     _, _, simulation_data_2 = simulate_mpc(X0, time_step, T_sample, T_simulation, trajectory, restrictions_thrust_unconstrained, output_weights, control_weights, gain_scheduling,\
-#                                 disturb_input=disturb_input, plot=False)
-#     x_mpc_2, u_mpc_2, omega_mpc_2, _ = simulation_data_2 if simulation_data_2 is not None else [None, None, None, None]
-
-
-#     simulation_metadata = wrap_metadata(dataset_id, trajectory_type, T_simulation, T_sample, N, M, mpc_success, mpc_metadata, restriction_metadata, disturbed_inputs=disturb_input)
-#     Path(simulation_save_path).mkdir(parents=True, exist_ok=True)
-
-#     for nn_key in list(nn_metadata.keys()):
-#         if nn_key not in list(simulation_metadata.keys()):
-#             simulation_metadata[nn_key] = nn_metadata[nn_key]
-#     simulation_metadata['radius (m)'] = trajectory_metadata['radius'] if trajectory_metadata is not None else 'nan'
-#     simulation_metadata['period (s)'] = trajectory_metadata['period'] if trajectory_metadata is not None else 'nan'
-
-#     if x_mpc is not None and x_nn is not None:
-#         simulation_metadata['inter_position_RMSe'] = analyser.RMSe(x_nn[:,9:], x_mpc[:,9:])
-#         for i, u_rmse in enumerate(analyser.RMSe_control(omega_mpc, omega_nn)):
-#             simulation_metadata[f'RMSe_u{i}'] = u_rmse
-#     else:
-#         simulation_metadata['inter_position_RMSe'] = 'nan'  
-#         for i in range(num_rotors):
-#             simulation_metadata[f'RMSe_u{i}'] = 'nan'
-    
-#     dataset_dataframe = pd.concat([dataset_dataframe, pd.DataFrame(simulation_metadata)])
-#     if dataset_id % 1 == 0: dataset_dataframe.to_csv(dataset_mother_folder + 'dataset_metadata.csv', sep=',', index=False)
-
-#     legend = ['MPC', 'Neural Network', 'Trajectory'] if x_mpc is not None else ['Neural Network', 'Trajectory']
-
-#     if trajectory_type == 'spiral_toroid': dict_toroid = {'R':7, 'r':3, 'n_winds':10,'period':100}
-#     else: dict_toroid = None
-
-#     np.save(simulation_save_path + 'x_mpc.npy', x_mpc)
-#     np.save(simulation_save_path + 'omega_mpc.npy', omega_mpc)
-
-#     np.save(simulation_save_path + 'x_mpc_unconstrained.npy', x_mpc_2)
-#     np.save(simulation_save_path + 'omega_mpc_unconstrained.npy', omega_mpc_2)
-
-#     np.save(simulation_save_path + 'x_nn.npy', x_nn)
-#     np.save(simulation_save_path + 'omega_nn.npy', omega_nn)
-
-#     #if x_nn is not None: analyser.plot_omega_squared(omega_squared_nn, t_samples[:np.shape(omega_squared_nn)[0]], simulation_save_path)
-#     if x_nn is not None and x_mpc is not None and x_mpc_2 is not None: analyser.plot_3d([x_mpc[:,9:], x_nn[:,9:], x_mpc_2[:,9:]], ['tab:blue','tab:orange','violet'], ['Constrained MPC', 'Neural Network', 'Unconstrained MPC'], t_samples[:np.shape(x_nn)[0]], trajectory[:len(t_samples)], True, simulation_save_path)
-
-#     if x_nn is not None and x_mpc is not None: analyser.plot_states(x_mpc, t_samples[:np.shape(x_nn)[0]], X_lin=x_nn, trajectory=trajectory[:len(t_samples)], u_vector=[u_mpc, u_nn], omega_vector=[omega_mpc, omega_nn], legend=legend, equal_scales=True, save_path=simulation_save_path, plot=False, pdf=True, extra_dict = dict_toroid, alpha=0.7)
-    
-#     elif x_mpc is not None: analyser.plot_states(x_mpc, t_samples[:np.shape(x_mpc)[0]], trajectory=trajectory[:len(t_samples)], u_vector=[u_mpc], omega_vector=[omega_mpc], legend=['MPC', 'Trajectory'], equal_scales=True, save_path=simulation_save_path, plot=False, pdf=True)
-    
-#     elif x_nn is not None:  analyser.plot_states(x_nn, t_samples[:np.shape(x_nn)[0]], trajectory=trajectory[:len(t_samples)], u_vector=[u_nn], omega_vector=[omega_nn], legend=['NN', 'Trajectory'], equal_scales=True, save_path=simulation_save_path, plot=False, pdf=True)
-#     dataset_id += 1
         
 def simulate_batch(trajectory_type, args_vector, restrictions_vector, disturb_input, mode,checkpoint_id = None, relax_constraint=None):
     global dataset_id
@@ -335,13 +263,17 @@ def simulate_batch(trajectory_type, args_vector, restrictions_vector, disturb_in
                 print(f'{trajectory_type} Simulation {dataset_id}/{total_simulations}')
                 T_simulation = args[-1]
                 if mode == 'constrained_mpc_and_nn':
-                    simulate_mpc_nn(X0, multirotor_model, N, M, num_inputs, q_neuralnetwork, omega_squared_eq, dataset_mother_folder, weights_file_name, time_step, T_sample, T_simulation, trajectory, trajectory_type, restrictions, restriction_metadata, output_weights, control_weights, gain_scheduling, disturb_input, num_neurons_hidden_layers, optuna_version, trajectory_metadata)                
+                    simulate_mpc_nn(X0, multirotor_model, N, M, num_inputs, q_neuralnetwork, omega_squared_eq, dataset_mother_folder, weights_file_name, time_step, T_sample, T_simulation, trajectory, trajectory_type, restrictions, restriction_metadata, output_weights, control_weights, gain_scheduling, disturb_input, optuna_version, trajectory_metadata)
+                    dataset_dataframe.to_csv(dataset_mother_folder + 'dataset_metadata.csv', sep=',', index=False)
+
                 elif mode == 'compare_clipped_unclipped_nns':
-                    simulate_2_nns(X0, multirotor_model, N, M, num_inputs, q_neuralnetwork, omega_squared_eq, dataset_mother_folder, weights_file_name, time_step, T_sample, T_simulation, trajectory, trajectory_type, restrictions, restriction_metadata, output_weights, control_weights, gain_scheduling, disturb_input, num_neurons_hidden_layers, optuna_version, trajectory_metadata)
+                    simulate_2_nns(X0, multirotor_model, N, M, num_inputs, q_neuralnetwork, omega_squared_eq, dataset_mother_folder, weights_file_name, time_step, T_sample, T_simulation, trajectory, trajectory_type, restrictions, restriction_metadata, output_weights, control_weights, gain_scheduling, disturb_input, optuna_version, trajectory_metadata)
+                    dataset_dataframe_nn.to_csv(dataset_mother_folder + 'dataset_metadata_nn.csv', sep=',', index=False)
                 elif mode == 'constrained_and_unconstrained_mpc_and_nn':
                     #if restrictions_vector_unconstrained is None: raise Exception('restrictions_uncontrained_vector is None')
                     restriction_thrust_unconstrained, _, _, _ = rst.restriction(restriction_metadata['operation_mode'], restriction_metadata['rotors_idx'], relax_constraint)
-                    simulate_mpc_nn_2(X0, multirotor_model, N, M, num_inputs, q_neuralnetwork, omega_squared_eq, dataset_mother_folder, weights_file_name, time_step, T_sample, T_simulation, trajectory, trajectory_type, restrictions, restriction_metadata, output_weights, control_weights, gain_scheduling, disturb_input, num_neurons_hidden_layers, optuna_version, trajectory_metadata, restriction_thrust_unconstrained)
+                    simulate_mpc_nn_2(X0, multirotor_model, N, M, num_inputs, q_neuralnetwork, omega_squared_eq, dataset_mother_folder, weights_file_name, time_step, T_sample, T_simulation, trajectory, trajectory_type, restrictions, restriction_metadata, output_weights, control_weights, gain_scheduling, disturb_input, optuna_version, trajectory_metadata, restriction_thrust_unconstrained)
+                    dataset_dataframe.to_csv(dataset_mother_folder + 'dataset_metadata.csv', sep=',', index=False)
 
             else:
                 dataset_id += 1
@@ -476,7 +408,3 @@ if __name__ == '__main__':
         # T_simulation = args[-1]
         # simulate_batch('point', args, restriction_test, False, 'constrained_and_unconstrained_mpc_and_nn', None, ['thrust'])
         ###########################################################
-
-
-    dataset_dataframe.to_csv(dataset_mother_folder + 'dataset_metadata.csv', sep=',', index=False)
-    dataset_dataframe_nn.to_csv(dataset_mother_folder + 'dataset_metadata_nn.csv', sep=',', index=False)

@@ -1,1 +1,0 @@
-Dataset utilizado: training datasets v5 (com trajetorias mais suaves comparadas com o v4, que tem linhas e pontos bem agressivos)

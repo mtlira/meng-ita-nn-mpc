@@ -511,7 +511,7 @@ class NeuralNetworkSimulator(object):
         self.u_ref = u_ref # input around which the model was linearized (omega_squared_eq)
         self.time_step = time_step
 
-    def simulate_neural_network(self, X0, nn_weights_folder, file_name, t_samples, trajectory, optuna_version, num_neurons_hidden_layers, restriction, disturb_input, clip:bool):
+    def simulate_neural_network(self, X0, nn_weights_folder, file_name, t_samples, trajectory, optuna_version, restriction, disturb_input, clip:bool):
         analyser = DataAnalyser()
         nn_weights_path = nn_weights_folder + file_name
         omega_squared_eq = self.u_ref
