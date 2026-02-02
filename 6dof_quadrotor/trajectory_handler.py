@@ -1,6 +1,8 @@
 import numpy as np
 from parameters.simulation_parameters import T_sample
 
+# Class that generates trajectory coordinates
+
 # x, y and z coordinates are on the upside-down body axis
 
 class TrajectoryHandler(object):

@@ -16,7 +16,7 @@ class Restriction(object):
         omega_eq = self.model.get_omega_eq_hover()
 
         omega_max = np.sqrt(self.model.thrust_to_weight)*omega_eq # Decision: Max thrust force = 2*m*g => omega_max = sqrt(2)*omega_eq
-        if relax_constraint is not None and 'thrust' in relax_constraint: omega_max = 50*omega_eq
+        if relax_constraint is not None and 'thrust' in relax_constraint: omega_max = 50*omega_eq # Relax omega_max constraint
         omega_min = np.zeros(self.model.num_rotors)
 
         if operation_mode != 'normal':
@@ -43,7 +43,7 @@ class Restriction(object):
         angle_max = np.array([0.7, 0.7, 1.2])
         angle_min = np.array([-0.7, -0.7, -1.2])
         #for i in range(15): print('WARNING: TEMPORARY ANGLE CONSTRAINTS BEING USED (0.4, 0.4, 0.6) RAD. FIX IT OR YOUR RESULTS ARE WRONG FOR THE MASTERS!!!!!!')
-        if relax_constraint is not None and 'angle' in relax_constraint:
+        if relax_constraint is not None and 'angle' in relax_constraint: # Relax attitude angle constraints
             angle_max = np.array([5, 5, 1000])
             angle_min = np.array([-5, -5, -1000])
 

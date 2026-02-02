@@ -1,5 +1,0 @@
-(Dataset foi construido pensando em hover apenas, ou seja, apenas trajetórias de ponto fixo foram utilizadas)
-
-- Hovering sendo feito com pequenas oscilações em torno do ponto de referência
-- Para referências em raios de até 5m aproximadamente, funciona bem
-- Se setar uma referência (degrau) muito grande logo de inicio, o drone pode tombar
